@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>边转发边处理与四种寻址方式</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'JetBrains Mono', monospace; background: #020617; min-height: 100vh; padding: 2rem; color: white; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #fb923c; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .locator { color: #64748b; font-size: 0.5rem; margin-left: 1.75rem; margin-top: 2px; }
+    .diagram-container { background: rgba(15, 23, 42, 0.5); border-radius: 1rem; border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto; }
+    svg { width: 100%; min-width: 960px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .card { background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.25rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.orange { background: #fb923c; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+    .toolbar { display: flex; gap: 0.5rem; margin-left: auto; flex-shrink: 0; align-items: center; }
+    .toolbar-toggle { background: transparent; border: none; color: #475569; cursor: pointer; font-size: 1.25rem; line-height: 1; padding: 0.25rem 0.5rem; border-radius: 0.375rem; transition: color 0.2s, background 0.2s; }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30, 41, 59, 0.5); }
+    .toolbar-actions { display: none; gap: 0.5rem; }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button { background: rgba(30, 41, 59, 0.8); border: 1px solid #334155; color: #94a3b8; padding: 0.375rem 0.75rem; border-radius: 0.375rem; font-family: inherit; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .toolbar-actions button:hover { background: rgba(51, 65, 85, 0.8); color: white; border-color: #475569; }
+    @media print { body { background: #020617; padding: 1rem; } .toolbar { display: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>边转发边处理（Processing on the Fly）与四种寻址方式</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">配图 6/11 · 对应文档《EtherCAT.md》第三章 3.3、3.4</p>
+      <p class="locator">图号定位：EtherCAT 工业实时以太网基础知识总结 · 第三章 · 帧经过从站时的处理时序与寻址机制</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1000 1100">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#020617" />
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- ================= TOP: 帧经过从站时的时序 ================= -->
+        <text x="30" y="30" fill="#fbbf24" font-size="13" font-weight="700">上半部分 · 帧经过从站时的时序（文档 3.3）</text>
+
+        <!-- hit arrow -->
+        <line x1="295" y1="46" x2="295" y2="86" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="295" y="42" fill="#fbbf24" font-size="9" text-anchor="middle" font-weight="600">地址匹配命中</text>
+
+        <!-- timeline boxes -->
+        <rect x="40" y="90" width="65" height="50" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="72" y="112" fill="white" font-size="9" font-weight="600" text-anchor="middle">MAC头</text>
+        <text x="72" y="128" fill="#94a3b8" font-size="8" text-anchor="middle">6+6+2B</text>
+
+        <rect x="110" y="90" width="55" height="50" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="137" y="112" fill="white" font-size="9" font-weight="600" text-anchor="middle">ECAT头</text>
+        <text x="137" y="128" fill="#94a3b8" font-size="8" text-anchor="middle">2B</text>
+
+        <rect x="170" y="90" width="250" height="50" rx="6" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="295" y="110" fill="white" font-size="10" font-weight="700" text-anchor="middle">Datagram 1</text>
+        <text x="295" y="125" fill="#fbbf24" font-size="8.5" text-anchor="middle">本从站数据段（正在处理）</text>
+
+        <rect x="425" y="90" width="130" height="50" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="490" y="112" fill="white" font-size="9" font-weight="600" text-anchor="middle">Datagram 2</text>
+        <text x="490" y="128" fill="#94a3b8" font-size="8" text-anchor="middle">其他从站数据段</text>
+
+        <rect x="560" y="90" width="55" height="50" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="587" y="112" fill="white" font-size="9" font-weight="600" text-anchor="middle">FCS</text>
+        <text x="587" y="128" fill="#fb7185" font-size="8" text-anchor="middle">4B·重算</text>
+
+        <line x1="615" y1="115" x2="648" y2="115" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="655" y="106" fill="#94a3b8" font-size="9">出端口比特流</text>
+        <text x="655" y="122" fill="#fbbf24" font-size="9" font-weight="700">延时约 100~500 ns</text>
+
+        <!-- annotation arrow + box -->
+        <line x1="295" y1="140" x2="295" y2="160" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <rect x="110" y="163" width="370" height="82" rx="6" fill="rgba(15,23,42,0.7)" stroke="#334155" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="295" y="181" fill="#22d3ee" font-size="9" text-anchor="middle">· 输出数据（主→从）→ 复制进 DPRAM</text>
+        <text x="295" y="198" fill="#34d399" font-size="9" text-anchor="middle">· DPRAM 数据（从→主）→ 写进该段（输入）</text>
+        <text x="295" y="215" fill="#fbbf24" font-size="9" text-anchor="middle">· 同一时刻重新计算并更新 WKC</text>
+        <text x="295" y="232" fill="#fb7185" font-size="9" text-anchor="middle">· 帧内容被改动 → 重算 FCS</text>
+
+        <!-- step boxes -->
+        <rect x="30" y="270" width="200" height="62" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="130" y="292" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">① 接收与转发同时开始</text>
+        <text x="130" y="308" fill="#94a3b8" font-size="8" text-anchor="middle">不等整帧收完即向下游输出</text>
+
+        <line x1="230" y1="301" x2="258" y2="301" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <rect x="260" y="270" width="200" height="62" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="360" y="292" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">② 解析 Datagram 头</text>
+        <text x="360" y="308" fill="#94a3b8" font-size="8" text-anchor="middle">判断 Cmd/Address 是否相关</text>
+
+        <line x1="460" y1="301" x2="488" y2="301" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <rect x="490" y="270" width="200" height="62" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="590" y="292" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">③ 命中则读写 DPRAM</text>
+        <text x="590" y="308" fill="#94a3b8" font-size="8" text-anchor="middle">输出复制进内存/输入写回段内</text>
+
+        <line x1="690" y1="301" x2="718" y2="301" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <rect x="720" y="270" width="210" height="62" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="825" y="292" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">④ 更新WKC并重算FCS</text>
+        <text x="825" y="308" fill="#94a3b8" font-size="8" text-anchor="middle">继续向下游，下一从站重复</text>
+
+        <!-- divider -->
+        <line x1="20" y1="358" x2="980" y2="358" stroke="#334155" stroke-width="1" stroke-dasharray="8,4"/>
+
+        <!-- ================= BOTTOM: 四种寻址方式 ================= -->
+        <text x="30" y="386" fill="#fbbf24" font-size="13" font-weight="700">下半部分 · 四种寻址方式（文档 3.4）</text>
+
+        <!-- Row1: 位置寻址 -->
+        <text x="30" y="412" fill="white" font-size="10.5" font-weight="700">① 位置寻址（Auto Increment）— APRD / APWR / APRW</text>
+
+        <text x="110" y="422" fill="#94a3b8" font-size="8.5" text-anchor="middle">-3</text>
+        <rect x="40" y="428" width="140" height="58" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="110" y="450" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">Slave 1</text>
+        <text x="110" y="465" fill="#94a3b8" font-size="8" text-anchor="middle">收到-3，非0，不响应</text>
+        <text x="110" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">+1 后转发 → -2</text>
+
+        <line x1="180" y1="457" x2="218" y2="457" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="290" y="422" fill="#94a3b8" font-size="8.5" text-anchor="middle">-2</text>
+        <rect x="220" y="428" width="140" height="58" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="290" y="450" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">Slave 2</text>
+        <text x="290" y="465" fill="#94a3b8" font-size="8" text-anchor="middle">收到-2，非0，不响应</text>
+        <text x="290" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">+1 后转发 → -1</text>
+
+        <line x1="360" y1="457" x2="398" y2="457" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="470" y="422" fill="#94a3b8" font-size="8.5" text-anchor="middle">-1</text>
+        <rect x="400" y="428" width="140" height="58" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="470" y="450" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">Slave 3</text>
+        <text x="470" y="465" fill="#94a3b8" font-size="8" text-anchor="middle">收到-1，非0，不响应</text>
+        <text x="470" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">+1 后转发 → 0</text>
+
+        <line x1="540" y1="457" x2="578" y2="457" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="650" y="422" fill="#fbbf24" font-size="8.5" text-anchor="middle" font-weight="700">0（命中）</text>
+        <rect x="580" y="428" width="140" height="58" rx="6" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="2"/>
+        <text x="650" y="450" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">Slave 4</text>
+        <text x="650" y="465" fill="#fbbf24" font-size="8" text-anchor="middle">收到0，命中并响应</text>
+        <text x="650" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">递增WKC，+1后转发→1</text>
+
+        <text x="500" y="503" fill="#94a3b8" font-size="9" text-anchor="middle">用途：网络扫描/初始配置阶段按“第几个”访问，接线顺序不能错</text>
+
+        <!-- Row2: 站地址寻址 -->
+        <rect x="40" y="530" width="900" height="56" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="60" y="550" fill="white" font-size="10.5" font-weight="700">② 站地址寻址（Configured Station Address）— FPRD / FPWR / FPRW</text>
+        <text x="60" y="568" fill="#94a3b8" font-size="9">用固定 16 位站地址访问，与物理位置解耦；用途：寄存器配置、状态机切换、邮箱通信</text>
+
+        <!-- Row3: 广播寻址 -->
+        <rect x="40" y="606" width="900" height="56" rx="6" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="60" y="626" fill="white" font-size="10.5" font-weight="700">③ 广播寻址（Broadcast）— BRD / BWR / BRW</text>
+        <text x="60" y="644" fill="#94a3b8" font-size="9">写操作所有从站都执行；读操作按位“或”合并各从站结果；BRD 常用于统计在线从站数量</text>
+
+        <!-- Row4: 逻辑寻址 -->
+        <text x="30" y="700" fill="white" font-size="10.5" font-weight="700">④ 逻辑寻址（Logical Addressing）— LRD / LWR / LRW</text>
+        <text x="30" y="716" fill="#fbbf24" font-size="9" font-weight="600">一条 LRW 覆盖多个从站，这是周期性过程数据交换的核心机制</text>
+
+        <rect x="40" y="730" width="900" height="55" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <line x1="265" y1="730" x2="265" y2="785" stroke="#a78bfa" stroke-width="1"/>
+        <line x1="490" y1="730" x2="490" y2="785" stroke="#a78bfa" stroke-width="1"/>
+        <line x1="715" y1="730" x2="715" y2="785" stroke="#a78bfa" stroke-width="1"/>
+        <text x="152" y="752" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">0x1000</text>
+        <text x="152" y="768" fill="#94a3b8" font-size="8.5" text-anchor="middle">轴1 数据</text>
+        <text x="377" y="752" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">0x1008</text>
+        <text x="377" y="768" fill="#94a3b8" font-size="8.5" text-anchor="middle">轴2 数据</text>
+        <text x="602" y="752" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">0x1010</text>
+        <text x="602" y="768" fill="#94a3b8" font-size="8.5" text-anchor="middle">轴3 数据</text>
+        <text x="827" y="752" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">0x1018</text>
+        <text x="827" y="768" fill="#94a3b8" font-size="8.5" text-anchor="middle">IO 模块</text>
+
+        <line x1="152" y1="785" x2="152" y2="860" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="152" y="825" fill="#fbbf24" font-size="8" text-anchor="middle">FMMU</text>
+        <line x1="377" y1="785" x2="377" y2="860" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="377" y="825" fill="#fbbf24" font-size="8" text-anchor="middle">FMMU</text>
+        <line x1="602" y1="785" x2="602" y2="860" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="602" y="825" fill="#fbbf24" font-size="8" text-anchor="middle">FMMU</text>
+        <line x1="827" y1="785" x2="827" y2="860" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="827" y="825" fill="#fbbf24" font-size="8" text-anchor="middle">FMMU</text>
+
+        <rect x="82" y="862" width="140" height="55" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="152" y="884" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">Slave 1</text>
+        <text x="152" y="900" fill="#94a3b8" font-size="8.5" text-anchor="middle">DPRAM</text>
+
+        <rect x="307" y="862" width="140" height="55" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="377" y="884" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">Slave 2</text>
+        <text x="377" y="900" fill="#94a3b8" font-size="8.5" text-anchor="middle">DPRAM</text>
+
+        <rect x="532" y="862" width="140" height="55" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="602" y="884" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">Slave 3</text>
+        <text x="602" y="900" fill="#94a3b8" font-size="8.5" text-anchor="middle">DPRAM</text>
+
+        <rect x="757" y="862" width="140" height="55" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="827" y="884" fill="white" font-size="9.5" font-weight="700" text-anchor="middle">Slave 4</text>
+        <text x="827" y="900" fill="#94a3b8" font-size="8.5" text-anchor="middle">DPRAM</text>
+
+        <text x="500" y="948" fill="#94a3b8" font-size="9" text-anchor="middle">一条 LRW 子报文（地址 0x1000，长度 0x20）→ 四个从站各取各的那一段</text>
+        <text x="500" y="963" fill="#94a3b8" font-size="8.5" text-anchor="middle">主站应用侧看到的就是一块连续的“共享内存”</text>
+
+        <!-- Legend -->
+        <text x="30" y="1005" fill="white" font-size="10" font-weight="600">图例</text>
+
+        <rect x="30" y="1017" width="16" height="10" rx="2" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="52" y="1026" fill="#94a3b8" font-size="8">命中/关键处理字段</text>
+
+        <rect x="200" y="1017" width="16" height="10" rx="2" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="222" y="1026" fill="#94a3b8" font-size="8">重算/变化字段（FCS）</text>
+
+        <rect x="400" y="1017" width="16" height="10" rx="2" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="422" y="1026" fill="#94a3b8" font-size="8">从站/物理节点</text>
+
+        <rect x="580" y="1017" width="16" height="10" rx="2" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="602" y="1026" fill="#94a3b8" font-size="8">逻辑地址空间</text>
+
+        <rect x="740" y="1017" width="16" height="10" rx="2" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1"/>
+        <text x="762" y="1026" fill="#94a3b8" font-size="8">广播寻址</text>
+
+        <line x1="880" y1="1022" x2="900" y2="1022" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="906" y="1026" fill="#94a3b8" font-size="8">FMMU 映射</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3>从站延时构成（3.3）</h3>
+        </div>
+        <ul>
+          <li>• ESC 处理延时（每个方向）：约 100~500 ns，取决于芯片与端口配置</li>
+          <li>• PHY 收发延时：每个方向几十到一百多 ns</li>
+          <li>• 100 m 铜缆传播延时：约 500 ns（约 5 ns/m）</li>
+          <li>• 100 个从站级联：单向纯硬件转发累计约几十 µs，往返数十到上百 µs</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot violet"></div>
+          <h3>寻址命令汇总（3.4.5）</h3>
+        </div>
+        <ul>
+          <li>• APRD/APWR/APRW：位置寻址 — 网络扫描、初始配置</li>
+          <li>• FPRD/FPWR/FPRW：站地址寻址 — 寄存器配置、状态机、邮箱</li>
+          <li>• BRD/BWR/BRW：广播寻址 — 读全网状态、清零计数器</li>
+          <li>• LRD/LWR/LRW：逻辑寻址 — 周期性过程数据（核心）</li>
+          <li>• ARMW/FRMW：位置/站地址 — 分布式时钟漂移补偿</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot cyan"></div>
+          <h3>关键直觉</h3>
+        </div>
+        <ul>
+          <li>• 没有“收完再发”：内部延时固定在几百纳秒，与帧长无关</li>
+          <li>• 修改的是“正在飞过的帧”：processing on the fly</li>
+          <li>• 返程不处理数据：末端回环后原路返回，只转发不改数据</li>
+          <li>• 从站 CPU 全程没参与：MCU 与帧时序解耦，自己方便时取数据</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">EtherCAT 技术图解 · 图 6/11 · 素材来源：EtherCAT.md</p>
+  </div>
+
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPNG(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a');
+        link.download = 'ethercat-6-processing-on-the-fly.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPDF(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('ethercat-6-processing-on-the-fly.pdf');
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>
