@@ -1,0 +1,200 @@
+{
+  "source": "../eCAL.md",
+  "source_sha256": "3F0C2BFBE1F3A38FD030D781F6A732884F5F34EA45D62239854CCC0C5571B9D6",
+  "outline_summary": {
+    "level1": "九章总览及八个技术主题",
+    "level2": "通信模型、Topic语义、传输选择、业务确认、零拷贝、工具链、业务接收与性能、代码阅读与排查",
+    "level3": "每个主题保留机制、处理策略与关键限定条件"
+  },
+  "review_rounds": [
+    {
+      "round": 1,
+      "result": "有异常",
+      "issues": [
+        "图3、4、5、7、8水印偏位",
+        "图1、2、6、7、8水印字形和字号比例不一致"
+      ]
+    },
+    {
+      "round": 2,
+      "result": "有异常",
+      "issues": [
+        "图3、4、5、7、8水印仍偏位",
+        "图2、4、7、8水印半标题字号比例不一致"
+      ]
+    },
+    {
+      "round": 3,
+      "result": "有异常",
+      "issues": [
+        "图4水印偏下且倾斜、UDP箭头穿过水印",
+        "图5、7、8水印轻微偏位",
+        "全组水印字高比例不同，原始颜色/透明度无法从RGB图片反推"
+      ]
+    },
+    {
+      "round": 4,
+      "result": "有异常",
+      "issues": [
+        "图4水印在约42%高度",
+        "图5水印略高于中心",
+        "图7水印过深、比例偏小，图9比例偏大"
+      ]
+    },
+    {
+      "round": 5,
+      "result": "有异常",
+      "issues": [
+        "图4水印约43%高度，未到画布中心",
+        "图5、7水印约49%高度，未严格中心",
+        "图5、7、9可见字号比例约0.4～0.45，未精确半字号",
+        "全部9图原始字体/字号/颜色/透明度精确参数无法从扁平RGB图片证明"
+      ]
+    }
+  ],
+  "verification_boundary": "PNG已验证RGB无Alpha。水印的位置、字号与字形由目视独立校验；35%透明度与#CCCCCC是生成提示要求，扁平位图不能反推出原始字形与透明度参数。",
+  "images": [
+    {
+      "number": 1,
+      "title": "章节总览",
+      "chapters": "第一至第九章",
+      "output_file": "1-章节总览.png",
+      "redraw_count": 3,
+      "redraw_reason": "水印居中与字形、第五章文字避让",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": "Fix readability of center chapter card ONLY in this chapter overview. Center watermark 'code闲录' now overlaps fifth chapter '录制' and hides it. Keep watermark at exact geometric image center, size/color/style unchanged. In middle chapter card, move title first line '服务、监控、' to upper right of card, and second line '录制与回放' to lower right around y535, so neither line intersects watermark region y448-495. ALL nine complete chapter titles must be clear. Keep第五章 badge, icon and other8cards, header, footer unchanged. Opaque PNG."
+    },
+    {
+      "number": 2,
+      "title": "eCAL 通信全景",
+      "chapters": "第一、三、五章",
+      "output_file": "2-eCAL 通信全景.png",
+      "redraw_count": 3,
+      "redraw_reason": "纠正网络路径起点、水印统一",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": "Edit the current infographic with this ONE visible watermark correction: Only change the watermark: reduce its letter height by20%. Keep center at836,470.5. Preserve all text and two branches from Publisher. Text 'code闲录', same handwrittenfont as title, #CCCCCC at35%opacity, rotation0. FullopaquePNG, no alpha. Do not simply output same image."
+    },
+    {
+      "number": 3,
+      "title": "Topic 与业务语义",
+      "chapters": "第二章",
+      "output_file": "3-Topic 与业务语义.png",
+      "redraw_count": 4,
+      "redraw_reason": "水印位置、字形与字号比例调整",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": "Edit the current infographic with this ONE visible watermark correction: Move the existing watermark UP by30pixels. Its visible letters must sit immediately beneath the bottom of the middle event card, not halfway in the large gap. Final glyph bounding box approximately x740-932,y449-492. Keep font/color/size unchanged. Text 'code闲录', same handwrittenfont as title, #CCCCCC at35%opacity, rotation0. FullopaquePNG, no alpha. Do not simply output same image."
+    },
+    {
+      "number": 4,
+      "title": "SHM、UDP、TCP 如何选择",
+      "chapters": "第三、四章",
+      "output_file": "4-SHM、UDP、TCP 如何选择.png",
+      "redraw_count": 5,
+      "redraw_reason": "移除额外英文、水印统一",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": "Final targeted repair of this infographic. Move existing watermark DOWN by75pixels from aroundy395 to EXACTWHOLECANVASCENTER y470.5,x836. Its boundingboxmustbex740-932,y450-491. Move ONLY UDP publisher-and-3-subscribers diagram down30pixels so the diagonal arrowsstay below watermark; expand UDP panel bottomby20px ifneeded. AllthreeUDPconnections and labelsunchanged. Do not place watermark back in the aestheticgap above diagram. Horizontal0degrees, samehandwrittenfontastitle, halftitleglyphheight, verylightgrey. Keep fullopaquePNG1672x941, noalpha. No changes to facts."
+    },
+    {
+      "number": 5,
+      "title": "可靠传输与业务确认",
+      "chapters": "第四、九章",
+      "output_file": "5-可靠传输与业务确认.png",
+      "redraw_count": 6,
+      "redraw_reason": "水印位置、字形与字号比例调整",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": "Final targeted repair of this infographic. Move only 'code闲录' down15pixels. Its BOTTOM edge must align with the TOP of requestIdcaption at abouty495, so glyphcenteris470.5. Do not leave it high in the blankgap. Samefont,sizeandverylightcolour. Allcaptionsandarrowsthe same. Keep fullopaquePNG1672x941, noalpha. No changes to facts."
+    },
+    {
+      "number": 6,
+      "title": "共享内存与零拷贝",
+      "chapters": "第四、六章",
+      "output_file": "6-共享内存与零拷贝.png",
+      "redraw_count": 1,
+      "redraw_reason": "水印位置、字形与字号比例调整",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": null
+    },
+    {
+      "number": 7,
+      "title": "监控、录制、回放与进程管理",
+      "chapters": "第五章",
+      "output_file": "7-监控、录制、回放与进程管理.png",
+      "redraw_count": 6,
+      "redraw_reason": "补齐录制元数据、水印与中央留白",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": "Final targeted repair of this infographic. Only adjust existing centeredwatermark 'code闲录': make it70percent LIGHTER than currentdarkgrey, and enlarge letterheightby25percent tohalfofmaintitle. Keep exactcenter x836,y470.5, unrotated. It should be subtle, verypalegrey likeotherimages. Preserve all recordingplayback content. Keep fullopaquePNG1672x941, noalpha. No changes to facts."
+    },
+    {
+      "number": 8,
+      "title": "业务接收与性能测量",
+      "chapters": "第六章",
+      "output_file": "8-业务接收与性能测量.png",
+      "redraw_count": 3,
+      "redraw_reason": "水印位置、字形与字号比例调整",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": "Targeted watermark repair, retain current infographic content and visualsystem. Move only watermark UP by10pixels, immediately beneath upperpanelbottom navyborder. Finaltextcenter836,470.5. Keepfontsize halfheading and handwrittenglyphs. Do not alter timeline or captions. FullopaqueRGBPNG1672x941."
+    },
+    {
+      "number": 9,
+      "title": "代码阅读与故障排查",
+      "chapters": "第七、八、九章",
+      "output_file": "9-代码阅读与故障排查.png",
+      "redraw_count": 1,
+      "redraw_reason": "无重绘",
+      "png": {
+        "width": 1672,
+        "height": 941,
+        "color_type": "RGB",
+        "alpha": false
+      },
+      "latest_repair_prompt": "Final targeted repair of this infographic. Only adjust centeredwatermark 'code闲录': reduce its glyphheight by20percent tohalfmainheadingheight, while keeping exactcenter x836,y470.5. Samehandwrittenbrushfontasheading, #CCCCCC35percentopacity,no rotation. Bothverticalroutes, titles, captionsandfooter unchanged. Keep fullopaquePNG1672x941, noalpha. No changes to facts."
+    }
+  ],
+  "final_status": "未完全通过视觉规范；技术内容与连线未发现异常",
+  "remaining_issues": [
+    "图4水印约43%高度，未到画布中心",
+    "图5、7水印约49%高度，未严格中心",
+    "图5、7、9可见字号比例约0.4～0.45，未精确半字号",
+    "全部9图原始字体/字号/颜色/透明度精确参数无法从扁平RGB图片证明"
+  ]
+}
