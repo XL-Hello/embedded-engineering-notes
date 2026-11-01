@@ -1,0 +1,13 @@
+Use case: ads-marketing.
+Generate ONE new Chinese WeChat article cover using the provided image strictly as a STYLE AND COMPOSITION reference, not as content to retain.
+Canvas: exact wide 2.35:1 landscape, preferably 1880x800 pixels. All artwork and text comfortably within safe margins.
+Match reference: clean warm white background, dark navy blue thick hand-drawn outlines and very legible bold handwritten Chinese lettering, pale cyan and mint fills, soft pale yellow marker highlights, small yellow decorative rays, flat friendly whiteboard doodles, lots of breathing room, polished editorial cover.
+Replace all programming content with the article topic of ordinary salaried workers building wealth patiently through career growth, saving income, and asset accumulation.
+Top centered oversized two-line Chinese headline, exactly:
+"普通职场人"
+"如何积累财富？"
+Pale yellow marker underline behind first line and pale cyan marker underline behind second line, like reference.
+Middle/lower illustration: three clear rounded illustrated panels linked by curved navy arrows left-to-right. First panel shows a laptop and briefcase with small upward steps, label exactly "职业成长". Second panel shows a payslip and a few coins being set aside, label exactly "工资结余". Third panel shows modest growing coin stacks and a small green seedling, label exactly "资产积累". These are conceptual drawings, no numerical investment returns or stock charts.
+Bottom three short rounded pastel tags, exactly "提升能力" / "持续储蓄" / "长期积累".
+Subtle small light gray watermark "code闲录" at the visual center as in reference, unobtrusive and not over labels.
+Maintain hierarchy: headline largest, illustration second, bottom tags smaller. Typography accurate and crisp. No English programming text, no C or C++, no extra slogans, no currency profit claims, no photorealism, no dark background, no gradients or 3D.

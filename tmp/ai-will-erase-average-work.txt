@@ -1,0 +1,198 @@
+AI Will Erase Average Work – Asher's Blog
+Asher's Blog
+my scruples
+AI Will Erase Average Work
+18.9.2026
+This has been an eye-opening week for artificial intelligence. Every new demonstration seems to remove another excuse for ignoring what is happening. Systems can now research, write, analyse, code, design, organise information and carry out increasingly long sequences of digital work. Tasks that recently required several different tools—and sometimes several different people—can now be coordinated through one intelligent interface.
+We do not know precisely how far this will go or how quickly every industry will change. But one conclusion is becoming difficult to avoid:
+AI will erase average work. I do not mean that every average worker will immediately lose their job, or that human beings will disappear from companies. I mean that work which is repetitive, predictable, easily specified and delivered without distinctive judgment will become increasingly difficult to defend as a valuable human contribution.
+If a machine can produce an acceptable version in seconds, “acceptable” is no longer a strong professional position.
+This is not only a message for employees; founders and chief executives are also exposed. AI will absorb parts of a founder’s work, and eventually many companies will operate with something that resembles an AI chief executive: a system that remembers the company’s goals, monitors its performance, prepares decisions, communicates in the founder’s voice and coordinates specialised agents.
+I am already thinking in that direction. I am building a model that assists me in my own work as a CEO. The question is no longer only, “How can AI help me write faster?” It is, “How can I transfer enough context, values and decision logic into a system that extends how I lead?”
+It is like building another person who never had a childhood—but who can learn from the documents, decisions and standards that shaped you.
+AI will change tasks before it removes entire jobs
+The phrase “AI will take your job” is powerful, but it is not precise enough.
+Most jobs are collections of tasks. A finance employee may reconcile accounts, investigate anomalies, explain performance, exercise judgment and communicate with management. A marketer may research customers, write copy, plan campaigns, analyse results and manage relationships. A chief executive may review numbers, answer messages, allocate capital, recruit leaders, resolve conflicts and decide what the company should become.
+AI may automate some of these activities, improve others and remain unreliable at tasks that require physical presence, accountability, deep context or human trust.
+The International Labour Organization’s 2025 global analysis examined exposure at the task level and estimated that one in four workers is in an occupation with some exposure to generative AI. Only 3.3 per cent of global employment fell into the highest exposure category, and the ILO concluded that transformation of jobs is more likely than complete replacement because most occupations still contain tasks requiring human input.
+Anthropic’s early Economic Index found a similar pattern in actual AI usage: more activity involved augmentation than full automation, and AI was spread across portions of occupations rather than replacing most jobs completely.
+The immediate threat is therefore not always that your job title disappears. It is that the number of people required to produce the same output falls, the standard for acceptable output rises and the employer becomes less willing to pay a human merely to complete the routine portion.
+One capable person using AI may do work that previously required several average performers.
+Average work is work without a defensible difference
+Average work is not simply work performed by an average person. Excellent people can produce average work when they stop learning, use outdated methods or deliver the minimum expected standard.
+Average work usually has several characteristics:
+the process is repetitive and largely rules-based;
+the inputs and desired outputs can be described clearly;
+the work depends more on formatting and recall than judgment;
+quality is “good enough” but not distinctive;
+mistakes can be found through standard checks;
+the worker adds little context beyond what is already in the documents; and
+the output looks similar regardless of who produced it.
+Think about a generic first draft of a report, routine meeting notes, basic customer responses, standard research summaries, simple data cleaning, repetitive coding, templated designs or the mechanical movement of information between systems.
+These tasks do not become worthless; they become cheaper. When the cost of producing something falls, the market does not continue paying the old price merely because a human prefers the former process. Value moves towards the harder parts: defining the right problem, supplying trusted context, identifying exceptions, verifying the output, making the decision and accepting responsibility for the consequences.
+The danger is not repetition by itself. Every profession contains necessary repetition. The danger is building an entire career around repetition while the cost of automating it approaches zero.
+Being uninspired is now an economic warning
+If your work has become monotonous and you are no longer inspired by it, pay attention.
+Boredom does not prove that AI can automate the job. Some repetitive physical and relational work remains difficult for machines. But boredom can reveal that you have stopped adding judgment, creativity or learning to the process.
+Ask yourself:
+Which parts of my work repeat every day?
+Which decisions follow rules that can be documented?
+Which outputs could another competent person reproduce from the same information?
+Which tasks would I gladly delegate if a reliable assistant existed?
+What do people trust me to do that cannot be captured in a template?
+The first group is where AI adoption should begin. The final question is where your human advantage may live.
+Do not wait for management to announce an automation programme. Begin learning how to redesign your own work. Use AI to remove the parts that consume time without requiring your best judgment. Then use the recovered capacity to solve harder problems.
+The person most likely to survive automation is not always the person who protects the old task most aggressively. It is often the person who automates it first and takes responsibility for the more valuable system around it.
+Traditional tools are becoming an invisible tax
+Many companies still operate through a collection of manual steps that exist only because they have always existed.
+An employee downloads a spreadsheet, changes it, sends it through email and waits for another person to re-upload it. A manager copies information from one application into another. A team member prepares the same report every Friday by gathering numbers that already exist across several systems.
+These workflows contain an invisible tax: time, errors, delayed decisions and the cost of people performing coordination that software should handle.
+The arrival of AI agents changes the question from “Which tool helps me complete this task?” to “Why must a person complete these steps at all?”
+An agent can potentially observe an event, retrieve information, apply rules, prepare an action, seek approval where required, execute through connected systems and record what it did. This is more consequential than adding a chatbot to an existing workflow. It redesigns the workflow.
+For African companies, the opportunity is enormous because many business processes are still manual or fragmented. Payroll, compliance, procurement, customer support, logistics, credit assessment and reconciliation contain thousands of recurring activities. At the same time, AI deployment must account for local realities: inconsistent data, multiple languages, unreliable connectivity, regulatory differences and processes that were never documented clearly.
+We should not merely import tools designed around another market’s assumptions. We should build systems that understand how work actually happens here.
+The future employee manages intelligence
+As AI improves, professional value will move away from producing the first acceptable output and towards managing an intelligent production system.
+That work includes:
+defining the objective;
+providing relevant context;
+choosing the appropriate model or agent;
+restricting access and authority;
+evaluating the output;
+detecting missing information and hallucinations;
+resolving exceptions;
+protecting confidential data;
+documenting decisions; and
+accepting accountability.
+This is why “prompt engineering” alone is not a durable career plan. Prompts will become easier, interfaces will improve and systems will infer more context automatically. The lasting advantage is understanding a domain well enough to tell whether the machine’s answer is useful, safe and true.
+An accountant who uses AI without understanding accounting can produce errors faster. A lawyer who cannot evaluate legal reasoning cannot delegate safely to a model. A marketer without customer insight will generate more content but not necessarily more demand.
+AI reduces the value of mechanical production while increasing the value of taste and verification.
+AI will also take part of the founder’s job
+Founders should not speak about AI as though disruption belongs only to employees.
+Much of a CEO’s day consists of information work. We read updates, respond to messages, review proposals, prepare meetings, interpret financial reports, follow up on commitments and communicate priorities. An AI system with appropriate access and context can already assist with many of these tasks.
+The more interesting possibility is a CEO agent that develops a working model of the company and the founder.
+Such an agent could understand:
+the company’s mission and strategic objectives;
+the founder’s values and non-negotiable principles;
+how the founder evaluates opportunities;
+the company’s products, customers and economics;
+how the founder communicates with different people;
+which metrics require attention;
+what decisions have been made and why;
+which commitments are outstanding; and
+where approval must remain human.
+It could prepare daily priorities, challenge inconsistencies, draft responses in the founder’s tone, identify risks across reports, simulate alternative decisions and coordinate specialised agents in finance, sales, product, customer success and operations.
+This is more than a digital assistant. It is an institutional extension of the founder’s judgment. But it is not literally the founder.
+An agent can recommend; a human must remain accountable
+Calling an AI system a “CEO” can conceal an important legal and moral distinction.
+A human chief executive has duties. The person can be questioned, removed, sued or held responsible for misconduct. They understand relationships and consequences in a way that cannot be reduced entirely to stored instructions. They also operate within boards, laws, employment obligations and social expectations.
+An AI agent cannot become the place where responsibility disappears. If the system rejects a candidate unfairly, transfers money incorrectly, exposes confidential information or gives unsafe instructions, the company cannot answer, “The agent decided.” A human authorised the system, selected its access, accepted its controls and benefited from its speed.
+The correct design is not unlimited autonomy; it is graduated autonomy. Low-risk, reversible tasks may be automated. Medium-risk actions may require review. High-risk decisions involving people, money, safety, legal obligations or significant strategic commitments should require explicit human approval and, where appropriate, more than one approver. AI should extend responsibility, not dissolve it.
+Build the guardrails before granting authority
+As agents become more capable, companies must distinguish intelligence from permission. A model may be capable of drafting a payment instruction. That does not mean it should be permitted to release funds. It may be capable of recommending termination. That does not mean it should make the final employment decision. It may be capable of responding to customers, but sensitive complaints may require escalation.
+Before deploying an agent, define:
+Purpose: What exact outcome is the system authorised to pursue?
+Data: Which information may it access, retain or disclose?
+Actions: What may it do directly, and what may it only recommend?
+Limits: Which financial, legal or operational thresholds constrain it?
+Approval: Who must authorise high-impact actions?
+Evidence: What sources must support its conclusions?
+Audit: How will instructions, outputs and actions be recorded?
+Escalation: When must the system stop and ask a person?
+Testing: How will failures, bias and adversarial behaviour be evaluated?
+Shutdown: How can access be withdrawn immediately?
+Guardrails are not a rejection of innovation. They are what allow serious companies to adopt AI without turning every efficiency into a new category of risk.
+At a societal level, the same principle applies. Governments and international institutions must address safety, warfare, surveillance, discrimination, labour displacement and the concentration of powerful systems. The capability race cannot be the only organising principle. Human welfare has to remain the objective.
+Do not teach an agent your tone without teaching it your values
+I am interested in building an agent that can respond as I would: how I write emails, how I communicate with my team and what I expect the organisation to achieve.
+Tone is the easy part. A model can learn that you prefer concise updates, direct feedback or a particular style of language. The harder and more important part is teaching the system why you make decisions.
+What do you protect when growth and trust conflict? How do you treat a struggling employee? What financial risks will you refuse even when the upside is attractive? What promises must never be broken? What customer information should never be exposed? What does fairness mean in your company?
+Values must be translated into operating rules, examples and boundaries. The agent should see previous decisions, including difficult ones, and the reasoning behind them. It should also be allowed to say that it lacks enough context rather than imitate certainty.
+If you give AI your voice without your values, you may create a convincing version of yourself that makes decisions you would never approve.
+The company needs a context layer
+An intelligent model is only as useful as the context it can access and the quality of the systems around it.
+Many companies want an AI agent before they have clean data, documented processes or reliable permissions. Important knowledge remains inside employees’ heads. Customer information is duplicated across systems. Metrics have different definitions. Policies are obsolete; nobody knows which document is authoritative. AI can make this confusion faster.
+Before building powerful agents, companies should organise the context layer:
+define important terms and metrics;
+identify authoritative data sources;
+document core workflows and decision rights;
+classify sensitive information;
+record the reasons behind major decisions;
+improve identity and access controls;
+create reliable integrations between systems; and
+establish evaluation datasets for important use cases.
+This work may feel less exciting than launching an agent. It is also what separates a demonstration from a dependable operating system.
+Average companies will copy tools; exceptional companies will redesign work
+The first stage of AI adoption is usually substitution. People use a model to draft the same email, produce the same presentation or complete the same analysis a little faster.
+The greater opportunity is redesign. If an agent can prepare the weekly report, do we still need the same reporting meeting? If it can monitor every customer interaction, can it identify churn risk before a quarterly review? If it can reconcile transactions continuously, should finance still wait until month-end to discover a problem? If it can prepare individualised onboarding, can the company serve customers previously considered too small?
+The advantage does not come from adding AI to every old process. It comes from asking which process would exist if intelligent systems had been available when the company was designed.
+This is where founders must lead. AI strategy cannot be delegated entirely to the technology team because the most important questions concern the business model, organisation, customer experience and allocation of human responsibility.
+The new standard is human judgment multiplied by machines
+The International Monetary Fund has estimated that almost 40 per cent of global employment is exposed to AI, with lower immediate exposure in emerging markets and low-income countries than in advanced economies. That may give parts of Africa more time, but it also creates a danger. Countries with weaker digital infrastructure and fewer AI skills may experience less immediate disruption while missing a large share of the productivity gains.
+Waiting is not protection. African companies should train employees to use AI responsibly, digitise processes, improve data quality and build local products. Educational institutions should teach students how to investigate, verify, reason and create with these systems—not merely how to reproduce information that a model can retrieve more quickly.
+The World Economic Forum’s Future of Jobs Report 2025, based on more than 1,000 employers representing over 14 million workers, places technological change among the forces expected to reshape labour markets through 2030. Whatever one thinks of individual forecasts, employers are already reorganising around the expectation that skills and work will change.
+The safest professional identity is no longer “I perform this routine.” It is “I understand this problem deeply, I can use the best available intelligence to solve it, and I will take responsibility for the result.”
+Move above the average
+If your work is repetitive, begin by mapping it. Automate one task. Learn how the system fails. Improve your instructions. Verify the output. Protect confidential information. Measure the time saved and the quality achieved. Then move to a more consequential workflow.
+Do not merely produce more average work because AI makes production cheaper. Use it to increase the standard.
+Ask better questions. Develop domain expertise. Learn to make trade-offs. Build trust. Improve your taste. Become excellent at noticing what is missing. Take responsibility for decisions a machine can recommend but cannot morally own.
+Founders should do the same at the company level. Build agents, but build controls. Encode context, not only tone. Redesign workflows, not only documents. Preserve human approval where consequences are serious.
+AI will not remove the need for humans. It will remove much of the economic protection previously enjoyed by work that was merely adequate.
+Average is becoming automated. The opportunity is to become the person—or build the company—that knows what the machines should do, why they should do it and when they must stop. —
+References and further reading
+International Labour Organization, Generative AI and Jobs: A Refined Global Index of Occupational Exposure.
+International Monetary Fund, AI Will Transform the Global Economy.
+World Economic Forum, The Future of Jobs Report 2025.
+Anthropic, The Anthropic Economic Index.
+Ethan Mollick, Co-Intelligence: Living and Working with AI.
+Ajay Agrawal, Joshua Gans and Avi Goldfarb, Power and Prediction: The Disruptive Economics of Artificial Intelligence.
+Share this:
+Share on X (Opens in new window)
+X
+Share on Facebook (Opens in new window)
+Facebook
+Like Loading…
+Discover more from Asher's Blog
+Subscribe to get the latest posts sent to your email.
+Type your email…
+Subscribe
+More Posts
+09.10
+Delay is Part of the Decision
+08.10
+Every Exception Becomes a Policy
+07.10
+Inheritance Tax Can Cost a Country More Than it Collects
+06.10
+Being a Founder is not a Status Symbol
+05.10
+Companies Grow Until Communication Breaks
+02.10
+Before Offence Becomes a Prison
+Leave a Reply Cancel reply
+Comment
+Name
+Email
+Website
+Δ
+Search
+Create a website or blog at WordPress.com
+Discover more from Asher's Blog
+Subscribe now to keep reading and get access to the full archive.
+Type your email…
+Subscribe
+Continue reading
+Comment
+Reblog
+Subscribe
+Subscribed
+Asher's Blog
+Join 123 other subscribers
+Sign me up
+Have a WordPress.com account? Log in now.
+Asher's Blog
+Copy shortlinkView post in Reader
+Manage subscriptionsSign upLog in
+Report this content
+Collapse this bar
+%d

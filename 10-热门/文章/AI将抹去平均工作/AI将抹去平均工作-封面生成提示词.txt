@@ -1,0 +1,11 @@
+Use case: scientific-educational. Create one finished Chinese WeChat article cover.
+Image 1 is the ORIGINAL visual style reference only. Replace all programming content.
+Canvas target 1880x800 pixels, landscape 2.35:1. Generous safe margins.
+Style profile code-xianlu-whiteboard-cover-v1: background #FEFEFB, navy #001943, yellow fill #FEEDB1, cyan fill #D1F5FE, mint fill #DBFDF5, yellow accents #FED277, watermark #DADADA. Heavy rounded near-upright handwritten Chinese marker lettering and matching bold Latin AI. Flat whiteboard drawings, no 3D or strong shadows. Outer outlines 5-7px, inner 3-5px. Title visible ink 105-125px, strokes 14-22px; uniformly reduce for long title rather than squeezing glyphs. Yellow and cyan marker swashes behind the lower part of each title line. Title centered within x280-1600,y50-310. Body y320-650, footer y665-756. Match original reference's typography and palette.
+Exact title, two lines:
+"AI 将抹去"
+"平均工作的溢价"
+Main composition two large rounded panels linked by an arrow pointing left to right, depicting the shift from routine output to human judgment. Left panel at x260-780,y350-630: stack of identical reports and a checklist, header exactly "重复执行". Right panel at x1080-1610,y330-630: a human hand using a magnifying glass to check an AI-produced report with a large tick and small compass, header exactly "判断负责". No robots taking people's jobs, no unemployment imagery. Clear simple navy arrow between panels at y510.
+Bottom four tags exactly: "定义问题" / "专业判断" / "核验结果" / "承担责任". Rounded pastel tag fills yellow, cyan, mint, yellow with navy lettering.
+Required light gray watermark exact text "code闲录", visually centered near x940,y400; reserve whitespace there, width 140-160px, visible ink height 28-34px. It must not overlap panel text.
+Sparse yellow accent rays and very subtle cyan ground shadows. All text must be exact, no extra English, no C/C++, no logos. This cover expresses a viewpoint about work losing its premium, not a statistical prediction. Output one crisp polished editorial cover.

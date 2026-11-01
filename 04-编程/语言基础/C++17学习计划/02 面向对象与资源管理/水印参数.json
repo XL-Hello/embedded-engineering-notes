@@ -1,0 +1,182 @@
+[
+  {
+    "file": "1-设备接口与多态.png",
+    "size": [
+      1672,
+      941
+    ],
+    "mode": "RGB",
+    "font": "C:/Windows/Fonts/FZSTK.TTF",
+    "title_font_size": 68,
+    "watermark_font_size": 34.0,
+    "watermark_center": [
+      836.0,
+      470.5
+    ],
+    "watermark_ink_bounds": [
+      767.5,
+      455.875,
+      904.5,
+      485.125
+    ],
+    "color": "#CCCCCC",
+    "opacity": 0.35,
+    "rotation": 0,
+    "title_ink_bounds": [
+      230.0,
+      19.0,
+      697.0,
+      82.75
+    ]
+  },
+  {
+    "file": "2-RAII与资源生命周期.png",
+    "size": [
+      1672,
+      941
+    ],
+    "mode": "RGB",
+    "font": "C:/Windows/Fonts/FZSTK.TTF",
+    "title_font_size": 68,
+    "watermark_font_size": 34.0,
+    "watermark_center": [
+      836.0,
+      470.5
+    ],
+    "watermark_ink_bounds": [
+      767.5,
+      455.875,
+      904.5,
+      485.125
+    ],
+    "color": "#CCCCCC",
+    "opacity": 0.35,
+    "rotation": 0,
+    "title_ink_bounds": [
+      230.0,
+      19.0,
+      835.25,
+      81.75
+    ]
+  },
+  {
+    "file": "3-Three-Five-Zero如何选择.png",
+    "size": [
+      1672,
+      941
+    ],
+    "mode": "RGB",
+    "font": "C:/Windows/Fonts/FZSTK.TTF",
+    "title_font_size": 68,
+    "watermark_font_size": 34.0,
+    "watermark_center": [
+      836.0,
+      470.5
+    ],
+    "watermark_ink_bounds": [
+      767.5,
+      455.875,
+      904.5,
+      485.125
+    ],
+    "color": "#CCCCCC",
+    "opacity": 0.35,
+    "rotation": 0,
+    "title_ink_bounds": [
+      230.0,
+      19.0,
+      1108.0,
+      83.75
+    ]
+  },
+  {
+    "file": "4-异常与失败后的状态.png",
+    "size": [
+      1672,
+      941
+    ],
+    "mode": "RGB",
+    "font": "C:/Windows/Fonts/FZSTK.TTF",
+    "title_font_size": 68,
+    "watermark_font_size": 34.0,
+    "watermark_center": [
+      836.0,
+      470.5
+    ],
+    "watermark_ink_bounds": [
+      767.5,
+      455.875,
+      904.5,
+      485.125
+    ],
+    "color": "#CCCCCC",
+    "opacity": 0.35,
+    "rotation": 0,
+    "title_ink_bounds": [
+      230.0,
+      19.0,
+      827.75,
+      84.0
+    ]
+  },
+  {
+    "file": "5-运算符与显式转换.png",
+    "size": [
+      1672,
+      941
+    ],
+    "mode": "RGB",
+    "font": "C:/Windows/Fonts/FZSTK.TTF",
+    "title_font_size": 68,
+    "watermark_font_size": 34.0,
+    "watermark_center": [
+      836.0,
+      470.5
+    ],
+    "watermark_ink_bounds": [
+      767.5,
+      455.875,
+      904.5,
+      485.125
+    ],
+    "color": "#CCCCCC",
+    "opacity": 0.35,
+    "rotation": 0,
+    "title_ink_bounds": [
+      230.0,
+      19.0,
+      761.25,
+      83.0
+    ]
+  },
+  {
+    "file": "6-UniqueFd独占句柄.png",
+    "size": [
+      1672,
+      941
+    ],
+    "mode": "RGB",
+    "font": "C:/Windows/Fonts/FZSTK.TTF",
+    "title_font_size": 68,
+    "watermark_font_size": 34.0,
+    "watermark_center": [
+      836.0,
+      470.5
+    ],
+    "watermark_ink_bounds": [
+      767.5,
+      455.875,
+      904.5,
+      485.125
+    ],
+    "color": "#CCCCCC",
+    "opacity": 0.35,
+    "rotation": 0,
+    "title_ink_bounds": [
+      230.0,
+      19.0,
+      1190.5,
+      82.5
+    ]
+  }
+]

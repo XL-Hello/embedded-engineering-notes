@@ -1,0 +1,43 @@
+{
+  "profile_id": "code-xianlu-whiteboard-cover-v1",
+  "reference_sha256": "274e915837fe8aa2787ca1c4411a7efee5301b87292b541e85a1f41bfd66d66d",
+  "tool": "image_gen.imagegen",
+  "generation_status": "completed",
+  "cli_fallback_authorized": true,
+  "cli_model": "gpt-image-2",
+  "cli_size": [
+    2256,
+    960
+  ],
+  "cli_dependencies_installed": true,
+  "cli_dry_run_pass": true,
+  "failure": null,
+  "requested_size": [
+    1880,
+    800
+  ],
+  "actual_size": [
+    1922,
+    818
+  ],
+  "exact_size_pass": false,
+  "ratio_pass": true,
+  "layout_variant": "two-subjects",
+  "overrides": {},
+  "visual_review": {
+    "title_weight": "pass",
+    "palette": "pass",
+    "outline_weight": "pass",
+    "layout": "pass",
+    "verbatim_text": "pass",
+    "arrow_semantics": "pass",
+    "watermark": "pass",
+    "cropping": "pass"
+  },
+  "exceptions": [
+    "Actual generated size differs from the default 1880x800 target; original image preserved without resizing.",
+    "Report illustration includes an additional accurate label: AI 生成的报告."
+  ],
+  "output_file": "AI将抹去平均工作-封面-2.35比1.png",
+  "output_sha256": "51d292e1b2e4fcb7085a3bc9add3d0569474f05941182852e4649ad9ebd59541"
+}

@@ -1,0 +1,360 @@
+# 现代 C++11 与 C++14 核心机制
+
+本文对应 [C++17 学习计划](../C++17学习计划.md)的第三阶段，承接 [面向对象与资源管理](面向对象与资源管理.md)。本阶段使用 C++17 编译环境，学习其中来自 C++11/14 的常用机制。
+
+本阶段要解决三个问题：资源如何在对象间转移，多个使用者如何表达所有权，以及回调如何安全保存行为和上下文。
+
+未注明“完整示例”的 `cpp` 代码块都是局部片段，需要补齐相关头文件和调用环境。示例中的移动不代表硬件 DMA 搬运，也不自动提供线程同步。
+
+## 一、移动语义：区分复制数据与转移资源
+
+### 1.1 左值、纯右值与将亡值
+
+C++17 的表达式值类别包括左值、纯右值和将亡值。纯右值与将亡值统称右值；左值与将亡值统称泛左值。它们描述表达式的属性，不能只按“在等号左边还是右边”判断。
+
+```cpp
+#include <string>
+#include <utility>
+
+std::string name = "uart";
+// name：左值表达式
+// std::string{"spi"}：纯右值表达式
+// std::move(name)：将亡值表达式
+```
+
+左值通常表示有身份、可以继续通过名字使用的对象。将亡值也有身份，但表达式允许把它当成可转移资源的来源。初学时，先掌握“普通变量名是左值，`std::move` 可以把它转换为将亡值”。
+
+### 1.2 左值引用与右值引用
+
+```cpp
+int value = 7;
+int& left = value;
+const int& readOnly = 8;
+int&& right = 9;
+```
+
+普通 `T&` 绑定兼容左值，`const T&` 也能绑定临时对象，`T&&` 通常用于绑定右值。上例临时整数的生命周期随相应局部引用的初始化规则延长，但不要把这推广成“引用在任何地方都会延长生命周期”。返回引用、引用参数和成员中的引用有各自规则。
+
+**有名字的右值引用变量，其名字仍是左值表达式。** 在函数内部使用 `right` 时，不会仅因它声明为 `int&&` 就自动继续移动。
+
+### 1.3 `std::move` 是转换，不执行搬运
+
+```cpp
+std::string first = "payload";
+std::string second = std::move(first);
+```
+
+真正处理资源转移的是 `second` 选择到的构造函数，`std::move` 只改变表达式类别。对于整数，所谓移动通常仍只是复制数值；类型没有可用移动操作时，也可能调用复制操作。
+
+标准库对象被移动后，除非另有约定，通常处于有效但未指定的状态：可以析构，也可以进行满足前置条件的操作，但不能假定字符串必然为空。`unique_ptr` 的移动则明确转移所有权，源指针为空。
+
+`std::move` 不会去掉 `const`。移动一个 `const std::string` 通常只能匹配复制构造，因为常见移动构造需要可修改的 `std::string&&`。
+
+### 1.4 移动构造与移动赋值
+
+移动构造创建新对象；移动赋值接管资源前，通常还要处理目标原来拥有的资源。
+
+```text
+伪代码：独占句柄的移动赋值
+    若不是自己给自己赋值：
+        释放目标原资源
+        目标接管源句柄
+        源对象变为空状态
+    返回目标对象引用
+```
+
+若成员已经使用 `std::vector`、`std::unique_ptr` 等类型，优先让编译器生成移动操作。需要自定义时，先定义移动后的源状态，并在确实不会抛异常时声明 `noexcept`。
+
+容器扩容时，为维持异常保证，可能在移动会抛异常且复制可用时选择复制。`noexcept` 是否正确，既影响可靠性，也可能影响实际性能。
+
+### 1.5 拷贝消除：直接构造结果
+
+```cpp
+std::string makeName() {
+    return std::string{"uart"};
+}
+
+std::string makeOtherName() {
+    std::string result = "spi";
+    return result;  // C++17 中 NRVO 仍不是强制保证
+}
+```
+
+C++17 中，同类型纯右值初始化结果对象的相应情形保证直接构造，不要求先产生临时对象再移动。返回具名局部变量的 NRVO 则仍是允许的优化，不能与前者混为一谈。
+
+不要习惯性写 `return std::move(result);`，它会阻碍这里的 NRVO。直接返回局部对象，让语言规则和编译器处理。
+
+## 二、转发引用与泛型参数传递
+
+### 2.1 `T&&` 不一定是转发引用
+
+```cpp
+#include <utility>
+
+void process(const std::string& text);
+void process(std::string&& text);
+
+template<class T>
+void relay(T&& value) {
+    process(std::forward<T>(value));
+}
+```
+
+这里 `T` 在调用时推导，`T&&` 是转发引用，可以接收左值和右值。非模板参数的 `std::string&&` 是普通右值引用；`const T&&` 也不是转发引用。
+
+类模板中，若 `T` 已由类的实例化确定，成员函数参数 `T&&` 也不会仅因写成这个形式就成为转发引用。
+
+### 2.2 引用折叠与 `std::forward`
+
+| 组合 | 折叠结果 |
+| --- | --- |
+| `T& &` | `T&` |
+| `T& &&` | `T&` |
+| `T&& &` | `T&` |
+| `T&& &&` | `T&&` |
+
+这些组合通过模板替换、别名等产生，不是让我们直接写出两个引用符号的非法声明。
+
+传左值时，`T` 可以推导为左值引用，折叠后参数仍为左值引用；传右值时，参数成为右值引用。`std::forward<T>` 根据推导结果保留调用者原来的类别，`std::move` 则无条件转成可移动表达式。
+
+完美转发适合构造包装器、工厂等通用接口。普通业务函数不必都写成转发模板；`const T&`、`T&` 和按值参数通常更直观。
+
+## 三、智能指针：把所有权写进类型
+
+### 3.1 `unique_ptr`：单一所有者
+
+```cpp
+#include <memory>
+
+auto value = std::make_unique<int>(42);
+auto owner = std::move(value);
+// value 为空，owner 负责释放整数。
+int* observer = owner.get();  // 借用，不接管所有权
+```
+
+`unique_ptr` 不能复制，可以移动。`reset()` 释放当前资源并可接管新指针，`release()` 则交出指针并放弃所有权，不执行释放。误用 `release()` 很容易产生泄漏。
+
+动态数组可以使用 `std::make_unique<int[]>(16)`；需要可变长度和容器操作时，通常优先使用 `std::vector<int>`。
+
+### 3.2 自定义删除器：适配 C 资源
+
+```cpp
+#include <cstdio>
+#include <memory>
+
+using FilePtr = std::unique_ptr<std::FILE, decltype(&std::fclose)>;
+FilePtr file{std::fopen("config.txt", "r"), &std::fclose};
+// 在函数中检查 file 是否为空，再调用读取接口。
+```
+
+不是 `new` 创建的资源，通常不能使用默认的 `delete`。删除器需要匹配获取接口，且不应让异常逃出。函数指针或带状态的删除器也可能增加智能指针对象自身的大小。
+
+### 3.3 `shared_ptr`：确实需要共享时再使用
+
+```cpp
+auto first = std::make_shared<int>(42);
+auto second = first;
+```
+
+两个指针共享同一个对象。最后一个强所有者释放后，对象被销毁。控制块还可能因 `weak_ptr` 存在而继续保留。
+
+不要从同一个裸指针分别创建两个独立 `shared_ptr`，它们可能形成不同控制块并重复删除资源。应复制已有 `shared_ptr`。
+
+不同的 `shared_ptr` 实例可以并发维护共享控制块的引用计数，但这不意味着被指对象线程安全；对同一个 `shared_ptr` 变量并发读写也需要相应同步。引用计数既不是设备访问锁，也不是“所有线程已完成工作”的证明。
+
+### 3.4 `weak_ptr` 与循环引用
+
+```cpp
+struct Node {
+    std::shared_ptr<Node> child;
+    std::weak_ptr<Node> parent;
+};
+
+// 在函数中使用：
+std::weak_ptr<Node> observer;
+if (auto node = observer.lock()) {
+    // node 在当前作用域内持有强引用。
+}
+```
+
+两个对象互相保存强引用时，即使外部不再使用它们，强计数也可能无法归零。把不拥有对方的方向改成 `weak_ptr`，可以打断环。
+
+使用时直接 `lock()` 并检查结果。先检查 `expired()` 再单独尝试使用，不能保证期间对象没有被销毁。
+
+### 3.5 工厂与内存成本
+
+`make_unique` 简化独占对象创建，来自 C++14；`make_shared` 常把对象与控制块放在一次联合分配中，但不应依赖具体分配次数作为跨平台保证。若弱引用长期存在，联合分配的整块存储也可能保持到控制块释放。
+
+需要自定义释放方式时，直接使用带删除器的智能指针构造形式。嵌入式系统还应评估动态分配、引用计数和实时性成本，不应把所有观察关系都改成共享所有权。所有权和控制块规则可对照 [C++17 草案的 shared_ptr 章节](https://timsong-cpp.github.io/cppwp/n4659/util.smartptr)。
+
+## 四、Lambda：把行为与上下文放在一起
+
+### 4.1 语法、捕获与 `mutable`
+
+```cpp
+int threshold = 10;
+auto above = [threshold](int value) {
+    return value > threshold;
+};
+
+auto counter = [count = 0]() mutable {
+    return ++count;
+};
+```
+
+方括号描述捕获，圆括号描述参数，函数体描述行为。值捕获把状态保存在闭包对象中，引用捕获访问外部对象；`mutable` 允许修改按值捕获的副本，不会自动改动外部原变量。
+
+| 写法 | 含义 | 主要风险 |
+| --- | --- | --- |
+| `[value]` | 保存副本 | 副本可能昂贵；指针副本不拥有目标 |
+| `[&value]` | 引用外部对象 | 回调晚于外部对象销毁时悬空 |
+| `[this]` | 保存当前对象指针 | 不延长当前对象生命周期 |
+| `[*this]` | C++17 中复制当前对象 | 复制语义与成本需要明确 |
+| `[p = std::move(p)]` | C++14 初始化捕获 | 可转移独占资源，闭包可能不可复制 |
+
+异步回调优先写明确捕获，避免 `[&]` 把短命局部变量意外带出作用域。按值捕获 `string_view` 或裸指针也不能延长底层资源生命。
+
+### 4.2 泛型 Lambda 与函数指针
+
+```cpp
+auto twice = [](auto value) { return value + value; };  // C++14
+
+using Callback = int (*)(int);
+Callback callback = [](int value) { return value + 1; };
+```
+
+泛型 Lambda 的调用运算符具有模板性质。无捕获 Lambda 可以转换为匹配的函数指针；有捕获 Lambda 不能直接变成普通函数指针，因为还需要保存上下文。
+
+C 回调接口通常通过“静态函数入口 + `void*` 上下文”适配对象，不能用强制转换把成员函数指针当成普通 C 函数指针。
+
+### 4.3 `std::function` 与 `std::bind`
+
+```cpp
+#include <functional>
+
+int offset = 3;
+std::function<int(int)> operation = [offset](int value) {
+    return value + offset;
+};
+
+auto add = [](int a, int b) { return a + b; };
+auto addThree = std::bind(add, std::placeholders::_1, 3);
+```
+
+`std::function` 通过类型擦除保存不同可调用对象，可能分配内存。C++17 的目标可调用对象需要可复制，因此捕获 `unique_ptr` 的不可复制闭包不能直接放进去。空的 `std::function` 被调用时会抛出 `std::bad_function_call`。
+
+`std::bind` 默认保存衰减后的参数副本；确实需要引用时可用 `std::ref`，同时承担生命周期责任。一般回调优先考虑 Lambda，其参数和捕获更容易看清。
+
+## 五、其他常用语言工具
+
+### 5.1 范围 `for`、强类型枚举与别名
+
+```cpp
+#include <vector>
+
+enum class State { idle, running, stopped };
+using Samples = std::vector<int>;
+
+Samples values{1, 2, 3};
+for (auto& value : values) {
+    value *= 2;
+}
+```
+
+`auto value` 取得副本，`auto&` 修改元素，`const auto&` 只读访问而不复制。循环期间改变容器结构，可能使迭代器失效，不能仅因用了范围 `for` 就忽略这一点。
+
+`enum class` 的枚举项位于枚举作用域中，不会自动转成整数。`using` 可以定义普通别名，也可以定义模板别名，适合表达业务类型名称。
+
+### 5.2 `initializer_list`、`=default` 与 `=delete`
+
+```cpp
+#include <vector>
+
+std::vector<int> first(3, 7);  // 三个 7
+std::vector<int> second{3, 7}; // 两个元素：3 和 7
+
+struct Config { Config() = default; };
+struct Unique {
+    Unique() = default;
+    Unique(const Unique&) = delete;
+    Unique& operator=(const Unique&) = delete;
+};
+```
+
+花括号列表初始化会优先考虑适用的 `initializer_list` 构造函数，不能随意把所有圆括号都替换成花括号。`initializer_list` 的元素按只读方式访问，某些只可移动元素因此不适合通过这种方式构造容器。
+
+`= default` 请求编译器提供相应默认实现；`= delete` 禁止某项操作，也能用于普通函数的特定重载。
+
+### 5.3 `static_assert`：把前提写成编译期检查
+
+```cpp
+#include <cstdint>
+#include <type_traits>
+
+static_assert(sizeof(std::uint32_t) == 4, "requires 32-bit word");
+static_assert(std::is_unsigned_v<std::uint32_t>);
+```
+
+`static_assert` 在编译期检查常量表达式，不能替代运行时输入校验。这里的单参数写法与 `_v` 类型萃取使用 C++17；`std::uint32_t` 只有在实现提供恰好 32 位无符号类型时才存在，示例也假定常见的 8 位字节平台。
+
+## 六、完整示例：转移一帧数据的所有权
+
+以下单文件示例可用 `g++ -std=c++17 -Wall -Wextra move.cpp -o move` 编译。它用 Lambda 表达“一次性持有待处理帧”，不使用线程。
+
+```cpp
+#include <cassert>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+struct Frame {
+    std::vector<std::uint8_t> bytes;
+};
+
+int main() {
+    auto frame = std::make_unique<Frame>();
+    frame->bytes = {1, 2, 3, 4};
+
+    auto consume = [owned = std::move(frame)]() mutable {
+        if (!owned) {
+            return std::size_t{0};
+        }
+        const auto count = owned->bytes.size();
+        owned.reset();
+        return count;
+    };
+
+    assert(!frame);
+    const auto firstCount = consume();
+    const auto secondCount = consume();
+    assert(firstCount == 4);
+    assert(secondCount == 0);
+    return 0;
+}
+```
+
+所有权从局部 `unique_ptr` 转给闭包，第一次消费后释放帧，第二次调用得到零。这里没有复制帧缓冲区，但创建帧与填充 `vector` 仍涉及动态分配；“使用移动”不等于“完全没有开销”。
+
+## 七、练习与自查
+
+| 练习 | 要做的事情 | 检查点 |
+| --- | --- | --- |
+| 值类别 | 给复制和移动操作添加日志 | 能解释具名右值引用为何仍是左值表达式 |
+| 返回对象 | 对比返回临时对象与具名局部对象 | 能区分 C++17 保证与 NRVO |
+| 所有权 | 用 `unique_ptr` 保存模拟设备 | 借用者不释放，移动后不再访问旧所有权 |
+| 共享关系 | 构造父子节点，再用 `weak_ptr` 打断环 | 最后一个强所有者消失时对象确实销毁 |
+| 回调 | 分别使用值捕获和引用捕获 | 能说明回调执行时被捕获对象是否仍存活 |
+| 泛型转发 | 给左值和右值分别转发到两个重载 | 不误用 `std::move` 消费调用者的左值 |
+
+完成后，应能回答：
+
+1. `std::move` 做了什么？为什么不保证实际发生移动？
+2. 被移动后的对象可以做什么？为什么不能随意假定标准容器为空？
+3. 转发引用与普通右值引用如何区分？引用折叠有什么作用？
+4. 什么时候用 `unique_ptr`、`shared_ptr`、`weak_ptr` 或普通借用引用？
+5. 共享引用计数为什么不能保护被指对象的并发访问？
+6. Lambda 保存的到底是值、引用还是指针？回调是否会悬空？
+7. 为什么捕获独占资源的 Lambda 不能直接放进 C++17 的 `std::function`？
+
+下一阶段进入 [STL 与泛型编程](STL%20与泛型编程.md)，把这些机制用于容器、算法和通用类型。

@@ -1,0 +1,74 @@
+[
+  {
+    "Name": "1-从C的结构体走向C++对象.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "10-复制语义与资源所有权.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "11-存储期与内存分配配对.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "12-串口对象.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "2-从源文件到可执行程序.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "3-引用与指针.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "4-const与constexpr.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "5-重载默认参数与inline.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "6-auto与decltype.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "7-访问控制this与static.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "8-对象初始化与只读接口.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  },
+  {
+    "Name": "9-构造与析构.png",
+    "Width": 1672,
+    "Height": 941,
+    "ColorType": 2
+  }
+]

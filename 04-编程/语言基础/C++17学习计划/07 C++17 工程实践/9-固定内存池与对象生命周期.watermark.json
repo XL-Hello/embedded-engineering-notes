@@ -1,0 +1,39 @@
+{
+  "text": "code闲录",
+  "canvas": [
+    1536,
+    864
+  ],
+  "target_center_px": [
+    768.0,
+    432.0
+  ],
+  "ink_center_px": [
+    768.0,
+    432.0
+  ],
+  "ink_bbox_px": [
+    718,
+    418,
+    818,
+    446
+  ],
+  "max_center_error_px": 0.5,
+  "font": "C:\\Windows\\Fonts\\STXINGKA.TTF",
+  "font_sha256": "7f901dfb0526d542740264fb5ba8dfe483293ad060270d273593e2f04a69d080",
+  "title_size_px": 64,
+  "watermark_size_px": 32,
+  "title_drawn": true,
+  "title_bbox_px": [
+    466,
+    16,
+    1215,
+    79
+  ],
+  "color": "#CCCCCC",
+  "opacity": 0.35,
+  "rotation_deg": 0,
+  "mode": "RGB",
+  "input_sha256": "3300268cce18bdc7a687c3c46abab68e6f499b9e1f4ef8d15b3ac911ba904bf2",
+  "output_sha256": "6fc8462ab264cc1798c9dc397bb9671a51808d7e022dd01a280950e5ed3cbb55"
+}

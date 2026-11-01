@@ -1,0 +1,4 @@
+{
+  "number": 6,
+  "prompt": "Fix this production infographic's canvas and watermark. FIRST set output canvas to EXACT1920x1080 (16:9), scale content without cropping. Keep title6 and all technical content unchanged. REMOVE old low watermark. Place new 'code闲录' at exact x960 y540, the whole canvas center, using the SAME freehand Chinese lettering as main heading (not printed sans-serif), font size precisely half heading. #CCCCCC at35% opacity. To make placement unambiguous, align watermark midpoint to midpoint of entire left-right vertical divider and half height of entire canvas. Entire canvas opaque. Do not put watermark below tables just to find white space."
+}

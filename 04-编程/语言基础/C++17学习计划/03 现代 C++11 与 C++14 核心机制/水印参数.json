@@ -1,0 +1,202 @@
+[
+  {
+    "file": "1-值类别与std-move.png",
+    "title_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "title_size_px": 96,
+    "watermark_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "watermark_size_px": 48,
+    "watermark_center": [
+      960,
+      540
+    ],
+    "watermark_color": "#CCCCCC",
+    "watermark_opacity": 0.35,
+    "watermark_rotation": 0,
+    "watermark_ink_bbox": [
+      880.5,
+      519.0,
+      1039.5,
+      561.0
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "2-资源转移与返回对象.png",
+    "title_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "title_size_px": 96,
+    "watermark_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "watermark_size_px": 48,
+    "watermark_center": [
+      960,
+      540
+    ],
+    "watermark_color": "#CCCCCC",
+    "watermark_opacity": 0.35,
+    "watermark_rotation": 0,
+    "watermark_ink_bbox": [
+      880.5,
+      519.0,
+      1039.5,
+      561.0
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "3-转发引用与完美转发.png",
+    "title_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "title_size_px": 96,
+    "watermark_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "watermark_size_px": 48,
+    "watermark_center": [
+      960,
+      540
+    ],
+    "watermark_color": "#CCCCCC",
+    "watermark_opacity": 0.35,
+    "watermark_rotation": 0,
+    "watermark_ink_bbox": [
+      880.5,
+      519.0,
+      1039.5,
+      561.0
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "4-独占所有权与C资源管理.png",
+    "title_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "title_size_px": 96,
+    "watermark_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "watermark_size_px": 48,
+    "watermark_center": [
+      960,
+      540
+    ],
+    "watermark_color": "#CCCCCC",
+    "watermark_opacity": 0.35,
+    "watermark_rotation": 0,
+    "watermark_ink_bbox": [
+      880.5,
+      519.0,
+      1039.5,
+      561.0
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "5-共享所有权与弱引用.png",
+    "title_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "title_size_px": 96,
+    "watermark_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "watermark_size_px": 48,
+    "watermark_center": [
+      960,
+      540
+    ],
+    "watermark_color": "#CCCCCC",
+    "watermark_opacity": 0.35,
+    "watermark_rotation": 0,
+    "watermark_ink_bbox": [
+      880.5,
+      519.0,
+      1039.5,
+      561.0
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "6-Lambda与回调生命周期.png",
+    "title_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "title_size_px": 96,
+    "watermark_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "watermark_size_px": 48,
+    "watermark_center": [
+      960,
+      540
+    ],
+    "watermark_color": "#CCCCCC",
+    "watermark_opacity": 0.35,
+    "watermark_rotation": 0,
+    "watermark_ink_bbox": [
+      880.5,
+      519.0,
+      1039.5,
+      561.0
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "7-常用语言工具与易错点.png",
+    "title_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "title_size_px": 96,
+    "watermark_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "watermark_size_px": 48,
+    "watermark_center": [
+      960,
+      540
+    ],
+    "watermark_color": "#CCCCCC",
+    "watermark_opacity": 0.35,
+    "watermark_rotation": 0,
+    "watermark_ink_bbox": [
+      880.5,
+      519.0,
+      1039.5,
+      561.0
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "mode": "RGB"
+  },
+  {
+    "file": "8-一帧数据的所有权旅程.png",
+    "title_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "title_size_px": 96,
+    "watermark_font": "C:/Windows/Fonts/STXINGKA.TTF",
+    "watermark_size_px": 48,
+    "watermark_center": [
+      960,
+      540
+    ],
+    "watermark_color": "#CCCCCC",
+    "watermark_opacity": 0.35,
+    "watermark_rotation": 0,
+    "watermark_ink_bbox": [
+      880.5,
+      519.0,
+      1039.5,
+      561.0
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "mode": "RGB"
+  }
+]

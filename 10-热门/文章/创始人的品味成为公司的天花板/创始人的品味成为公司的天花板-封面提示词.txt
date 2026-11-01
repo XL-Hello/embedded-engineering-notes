@@ -1,0 +1,15 @@
+Use case: ads-marketing.
+Create ONE new Chinese WeChat editorial cover. Use the attached image only as a visual style and composition reference. Do NOT keep its wealth subject or wording.
+Canvas: exact 2.35:1 wide landscape, target 1880x800 pixels, all text and artwork within generous safe margins.
+Style: match reference warm white background, dark navy thick hand-drawn strokes, bold highly legible handwritten Chinese type, pale cyan and pale mint fills, soft yellow marker highlights, small golden decorative rays, rounded panels, flat clean whiteboard doodle illustration, plentiful breathing room.
+Top centered large two-line headline, verbatim:
+"创始人的品味"
+"成为公司的天花板"
+First line has pale yellow marker underline, second line has pale cyan marker underline.
+Below headline, a simple conceptual sequence in three rounded panels connected with navy arrows:
+Left panel labelled "个人判断": one founder thoughtfully examining a product with a magnifying glass.
+Middle panel labelled "团队标准": two colleagues using a clear checklist together, conveying shared understanding rather than micromanagement.
+Right panel labelled "组织成长": a small team climbing broad steps beneath an overhead horizontal beam, with the beam being lifted upward, expressing raising the ceiling through collective ability. Avoid crowded details.
+Bottom three pastel rounded tags, verbatim: "识别优秀", "传递标准", "突破上限".
+Small subtle light-gray watermark "code闲录" near visual center, not over other text.
+Keep the same typography hierarchy and friendly editorial feel as the attached cover. Accurate Simplified Chinese. No English labels, no money imagery, no boss shouting, no photorealism, no dark background, no dense tiny text, no extra claims.

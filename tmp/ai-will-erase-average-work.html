@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name='robots' content='max-image-preview:large' />
+
+<!-- Async WordPress.com Remote Login -->
+<script id="wpcom_remote_login_js">
+var wpcom_remote_login_extra_auth = '';
+function wpcom_remote_login_remove_dom_node_id( element_id ) {
+	var dom_node = document.getElementById( element_id );
+	if ( dom_node ) { dom_node.parentNode.removeChild( dom_node ); }
+}
+function wpcom_remote_login_remove_dom_node_classes( class_name ) {
+	var dom_nodes = document.querySelectorAll( '.' + class_name );
+	for ( var i = 0; i < dom_nodes.length; i++ ) {
+		dom_nodes[ i ].parentNode.removeChild( dom_nodes[ i ] );
+	}
+}
+function wpcom_remote_login_final_cleanup() {
+	wpcom_remote_login_remove_dom_node_classes( "wpcom_remote_login_msg" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_key" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_validate" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_js" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_request_access_iframe" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_request_access_styles" );
+}
+
+// Watch for messages back from the remote login
+window.addEventListener( "message", function( e ) {
+	if ( e.origin === "https://r-login.wordpress.com" ) {
+		var data = {};
+		try {
+			data = JSON.parse( e.data );
+		} catch( e ) {
+			wpcom_remote_login_final_cleanup();
+			return;
+		}
+
+		if ( data.msg === 'LOGIN' ) {
+			// Clean up the login check iframe
+			wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_key" );
+
+			var id_regex = new RegExp( /^[0-9]+$/ );
+			var token_regex = new RegExp( /^.*|.*|.*$/ );
+			if (
+				token_regex.test( data.token )
+				&& id_regex.test( data.wpcomid )
+			) {
+				// We have everything we need to ask for a login
+				var script = document.createElement( "script" );
+				script.setAttribute( "id", "wpcom_remote_login_validate" );
+				script.src = '/remote-login.php?wpcom_remote_login=validate'
+					+ '&wpcomid=' + data.wpcomid
+					+ '&token=' + encodeURIComponent( data.token )
+					+ '&host=' + window.location.protocol
+					+ '//' + window.location.hostname
+					+ '&postid=1010'
+					+ '&is_singular=1';
+				document.body.appendChild( script );
+			}
+
+			return;
+		}
+
+		// Safari ITP, not logged in, so redirect
+		if ( data.msg === 'LOGIN-REDIRECT' ) {
+			window.location = 'https://wordpress.com/log-in?redirect_to=' + window.location.href;
+			return;
+		}
+
+		// Safari ITP, storage access failed, remove the request
+		if ( data.msg === 'LOGIN-REMOVE' ) {
+			var css_zap = 'html { -webkit-transition: margin-top 1s; transition: margin-top 1s; } /* 9001 */ html { margin-top: 0 !important; } * html body { margin-top: 0 !important; } @media screen and ( max-width: 782px ) { html { margin-top: 0 !important; } * html body { margin-top: 0 !important; } }';
+			var style_zap = document.createElement( 'style' );
+			style_zap.type = 'text/css';
+			style_zap.appendChild( document.createTextNode( css_zap ) );
+			document.body.appendChild( style_zap );
+
+			var e = document.getElementById( 'wpcom_request_access_iframe' );
+			e.parentNode.removeChild( e );
+
+			document.cookie = 'wordpress_com_login_access=denied; path=/; max-age=31536000';
+
+			return;
+		}
+
+		// Safari ITP
+		if ( data.msg === 'REQUEST_ACCESS' ) {
+			console.log( 'request access: safari' );
+
+			// Check ITP iframe enable/disable knob
+			if ( wpcom_remote_login_extra_auth !== 'safari_itp_iframe' ) {
+				return;
+			}
+
+			// If we are in a "private window" there is no ITP.
+			var private_window = false;
+			try {
+				var opendb = window.openDatabase( null, null, null, null );
+			} catch( e ) {
+				private_window = true;
+			}
+
+			if ( private_window ) {
+				console.log( 'private window' );
+				return;
+			}
+
+			var iframe = document.createElement( 'iframe' );
+			iframe.id = 'wpcom_request_access_iframe';
+			iframe.setAttribute( 'scrolling', 'no' );
+			iframe.setAttribute( 'sandbox', 'allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-top-navigation-by-user-activation' );
+			iframe.src = 'https://r-login.wordpress.com/remote-login.php?wpcom_remote_login=request_access&origin=' + encodeURIComponent( data.origin ) + '&wpcomid=' + encodeURIComponent( data.wpcomid );
+
+			var css = 'html { -webkit-transition: margin-top 1s; transition: margin-top 1s; } /* 9001 */ html { margin-top: 46px !important; } * html body { margin-top: 46px !important; } @media screen and ( max-width: 660px ) { html { margin-top: 71px !important; } * html body { margin-top: 71px !important; } #wpcom_request_access_iframe { display: block; height: 71px !important; } } #wpcom_request_access_iframe { border: 0px; height: 46px; position: fixed; top: 0; left: 0; width: 100%; min-width: 100%; z-index: 99999; background: #23282d; } ';
+
+			var style = document.createElement( 'style' );
+			style.type = 'text/css';
+			style.id = 'wpcom_request_access_styles';
+			style.appendChild( document.createTextNode( css ) );
+			document.body.appendChild( style );
+
+			document.body.appendChild( iframe );
+		}
+
+		if ( data.msg === 'DONE' ) {
+			wpcom_remote_login_final_cleanup();
+		}
+	}
+}, false );
+
+// Inject the remote login iframe after the page has had a chance to load
+// more critical resources
+window.addEventListener( "DOMContentLoaded", function( e ) {
+	var iframe = document.createElement( "iframe" );
+	iframe.style.display = "none";
+	iframe.setAttribute( "scrolling", "no" );
+	iframe.setAttribute( "id", "wpcom_remote_login_key" );
+	iframe.src = "https://r-login.wordpress.com/remote-login.php"
+		+ "?wpcom_remote_login=key"
+		+ "&origin=aHR0cHM6Ly9hc2hlcmFkZW5peWkuY29t"
+		+ "&wpcomid=126290534"
+		+ "&time=" + Math.floor( Date.now() / 1000 );
+	document.body.appendChild( iframe );
+}, false );
+</script>
+<title>AI Will Erase Average Work &#8211; Asher&#039;s Blog</title>
+<link rel='dns-prefetch' href='//s0.wp.com' />
+<link rel='dns-prefetch' href='//s2.wp.com' />
+<link rel='dns-prefetch' href='//wordpress.com' />
+<link rel='dns-prefetch' href='//s1.wp.com' />
+<link rel="alternate" type="application/rss+xml" title="Asher&#039;s Blog &raquo; Feed" href="https://asheradeniyi.com/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Asher&#039;s Blog &raquo; Comments Feed" href="https://asheradeniyi.com/comments/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Asher&#039;s Blog &raquo; AI Will Erase Average&nbsp;Work Comments Feed" href="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/feed/" />
+	<script type="text/javascript">
+		/* <![CDATA[ */
+		function addLoadEvent(func) {
+			var oldonload = window.onload;
+			if (typeof window.onload != 'function') {
+				window.onload = func;
+			} else {
+				window.onload = function () {
+					oldonload();
+					func();
+				}
+			}
+		}
+		/* ]]> */
+	</script>
+	<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link crossorigin='anonymous' rel='stylesheet' id='all-css-2-1' href='/_static/??-eJxtzFsKgDAMRNENWaMiVD/EtUgbpO9iUty+VARB/Bk4MFw4s1ApMkaGUET2ZTeRwCLnTbnHEFKqo4tHggP9xqhFTsQftYqogf+kNw7f8K16X8PSy3mQo+wmaS9gyTTk&cssminify=yes' type='text/css' media='all' />
+<style id="wp-block-site-title-inline-css">
+.wp-block-site-title{box-sizing:border-box}.wp-block-site-title :where(a){color:inherit;font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;text-decoration:inherit}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/site-title/style.min.css */
+</style>
+<style id="wp-block-group-inline-css">
+.wp-block-group{box-sizing:border-box}:where(.wp-block-group.wp-block-group-is-layout-constrained){position:relative}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/group/style.min.css */
+</style>
+<style id="wp-block-site-tagline-inline-css">
+.wp-block-site-tagline{box-sizing:border-box}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/site-tagline/style.min.css */
+</style>
+<style id="wp-block-post-title-inline-css">
+.wp-block-post-title{box-sizing:border-box;overflow-wrap:anywhere;word-break:normal}.wp-block-post-title :where(a){font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;text-decoration:inherit}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/post-title/style.min.css */
+</style>
+<style id="wp-block-post-date-inline-css">
+.wp-block-post-date{box-sizing:border-box}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/post-date/style.min.css */
+</style>
+<style id="wp-block-paragraph-inline-css">
+.is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:var(--wp--style--block-background-padding,1.25em 2.375em)}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/paragraph/style.min.css */
+</style>
+<style id="wp-block-list-inline-css">
+ol,ul{box-sizing:border-box}:root :where(.wp-block-list.has-background){padding:var(--wp--style--block-background-padding,1.25em 2.375em)}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/list/style.min.css */
+</style>
+<style id="wp-block-post-content-inline-css">
+.wp-block-post-content{display:flow-root}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/post-content/style.min.css */
+</style>
+<style id="wp-block-separator-inline-css">
+@charset "UTF-8";.wp-block-separator{border:none;border-top:2px solid}:root :where(.wp-block-separator.is-style-dots){height:auto;line-height:1;text-align:center}:root :where(.wp-block-separator.is-style-dots):before{color:currentColor;content:"···";font-family:serif;font-size:1.5em;letter-spacing:2em;padding-left:2em}.wp-block-separator.is-style-dots{background:none!important;border:none!important}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/separator/style.min.css */
+</style>
+<style id="wp-block-heading-inline-css">
+h1:where(.wp-block-heading).has-background,h2:where(.wp-block-heading).has-background,h3:where(.wp-block-heading).has-background,h4:where(.wp-block-heading).has-background,h5:where(.wp-block-heading).has-background,h6:where(.wp-block-heading).has-background{padding:var(--wp--style--block-background-padding,1.25em 2.375em)}h1.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h1.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h2.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h2.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h3.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h3.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h4.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h4.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h5.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h5.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]),h6.has-text-align-left[style*=writing-mode]:where([style*=vertical-lr]),h6.has-text-align-right[style*=writing-mode]:where([style*=vertical-rl]){rotate:180deg}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/heading/style.min.css */
+</style>
+<style id="jetpack-block-subscriptions-inline-css">
+.is-style-compact .is-not-subscriber :is(.wp-block-button__link,.wp-block-jetpack-subscriptions__button){border-end-start-radius:0!important;border-start-start-radius:0!important;margin-inline-start:0!important}.is-style-compact .is-not-subscriber .components-text-control__input,.is-style-compact .is-not-subscriber p#subscribe-email input[type=email]{border-end-end-radius:0!important;border-start-end-radius:0!important}.is-style-compact:not(.wp-block-jetpack-subscriptions__use-newline) .components-text-control__input{border-inline-end-width:0!important}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form-container{display:flex;flex-direction:column}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline:not(.wp-block-jetpack-subscriptions__use-newline) .is-not-subscriber .wp-block-jetpack-subscriptions__form-elements{align-items:flex-start;display:flex}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline:not(.wp-block-jetpack-subscriptions__use-newline) p#subscribe-submit{display:flex;justify-content:center}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form .wp-block-jetpack-subscriptions__button,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form .wp-block-jetpack-subscriptions__textfield .components-text-control__input,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form button,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form input[type=email],.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form .wp-block-jetpack-subscriptions__button,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form .wp-block-jetpack-subscriptions__textfield .components-text-control__input,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form button,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form input[type=email]{box-sizing:border-box;cursor:pointer;line-height:1.3;min-width:auto!important;white-space:nowrap!important}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form input[type=email]::placeholder,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form input[type=email]:disabled,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form input[type=email]::placeholder,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form input[type=email]:disabled{color:currentColor;opacity:.5}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form .wp-block-jetpack-subscriptions__button,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form button,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form .wp-block-jetpack-subscriptions__button,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form button{border-color:#0000;border-style:solid}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form .wp-block-jetpack-subscriptions__textfield,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form p#subscribe-email,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form .wp-block-jetpack-subscriptions__textfield,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form p#subscribe-email{background:#0000;flex-grow:1}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form .wp-block-jetpack-subscriptions__textfield .components-base-control__field,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form .wp-block-jetpack-subscriptions__textfield .components-text-control__input,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form .wp-block-jetpack-subscriptions__textfield input[type=email],.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form p#subscribe-email .components-base-control__field,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form p#subscribe-email .components-text-control__input,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form p#subscribe-email input[type=email],.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form .wp-block-jetpack-subscriptions__textfield .components-base-control__field,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form .wp-block-jetpack-subscriptions__textfield .components-text-control__input,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form .wp-block-jetpack-subscriptions__textfield input[type=email],.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form p#subscribe-email .components-base-control__field,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form p#subscribe-email .components-text-control__input,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form p#subscribe-email input[type=email]{height:auto;margin:0;width:100%}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form p#subscribe-email,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline .wp-block-jetpack-subscriptions__form p#subscribe-submit,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form p#subscribe-email,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline form p#subscribe-submit{line-height:0;margin:0;padding:0}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline.wp-block-jetpack-subscriptions__show-subs .wp-block-jetpack-subscriptions__subscount{font-size:16px;margin:8px 0;text-align:end}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline.wp-block-jetpack-subscriptions__use-newline .wp-block-jetpack-subscriptions__form-elements{display:block}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline.wp-block-jetpack-subscriptions__use-newline .wp-block-jetpack-subscriptions__button,.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline.wp-block-jetpack-subscriptions__use-newline button{display:inline-block;max-width:100%}.wp-block-jetpack-subscriptions.wp-block-jetpack-subscriptions__supports-newline.wp-block-jetpack-subscriptions__use-newline .wp-block-jetpack-subscriptions__subscount{text-align:start}#subscribe-submit.is-link{text-align:center;width:auto!important}#subscribe-submit.is-link a{margin-left:0!important;margin-top:0!important;width:auto!important}@keyframes jetpack-memberships_button__spinner-animation{to{transform:rotate(1turn)}}.jetpack-memberships-spinner{display:none;height:1em;margin:0 0 0 5px;width:1em}.jetpack-memberships-spinner svg{height:100%;margin-bottom:-2px;width:100%}.jetpack-memberships-spinner-rotating{animation:jetpack-memberships_button__spinner-animation .75s linear infinite;transform-origin:center}.is-loading .jetpack-memberships-spinner{display:inline-block}body.jetpack-memberships-modal-open{overflow:hidden}dialog.jetpack-memberships-modal{opacity:1}dialog.jetpack-memberships-modal,dialog.jetpack-memberships-modal iframe{background:#0000;border:0;bottom:0;box-shadow:none;height:100%;left:0;margin:0;padding:0;position:fixed;right:0;top:0;width:100%}dialog.jetpack-memberships-modal::backdrop{background-color:#000;opacity:.7;transition:opacity .2s ease-out}dialog.jetpack-memberships-modal.is-loading,dialog.jetpack-memberships-modal.is-loading::backdrop{opacity:0}
+/*# sourceURL=/wp-content/mu-plugins/jetpack-plugin/moon/_inc/blocks/subscriptions/view.css?minify=false */
+</style>
+<style id="wp-block-columns-inline-css">
+.wp-block-columns{box-sizing:border-box;display:flex;flex-wrap:wrap!important}@media (min-width:782px){.wp-block-columns{flex-wrap:nowrap!important}}.wp-block-columns{align-items:normal!important}.wp-block-columns.are-vertically-aligned-top{align-items:flex-start}.wp-block-columns.are-vertically-aligned-center{align-items:center}.wp-block-columns.are-vertically-aligned-bottom{align-items:flex-end}@media (max-width:781px){.wp-block-columns:not(.is-not-stacked-on-mobile)>.wp-block-column{flex-basis:100%!important}}@media (min-width:782px){.wp-block-columns:not(.is-not-stacked-on-mobile)>.wp-block-column{flex-basis:0;flex-grow:1}.wp-block-columns:not(.is-not-stacked-on-mobile)>.wp-block-column[style*=flex-basis]{flex-grow:0}}.wp-block-columns.is-not-stacked-on-mobile{flex-wrap:nowrap!important}.wp-block-columns.is-not-stacked-on-mobile>.wp-block-column{flex-basis:0;flex-grow:1}.wp-block-columns.is-not-stacked-on-mobile>.wp-block-column[style*=flex-basis]{flex-grow:0}:where(.wp-block-columns){margin-bottom:1.75em}:where(.wp-block-columns.has-background){padding:var(--wp--style--block-background-padding,1.25em 2.375em)}.wp-block-column{flex-grow:1;min-width:0;overflow-wrap:break-word;word-break:normal}.wp-block-column.is-vertically-aligned-top{align-self:flex-start}.wp-block-column.is-vertically-aligned-center{align-self:center}.wp-block-column.is-vertically-aligned-bottom{align-self:flex-end}.wp-block-column.is-vertically-aligned-stretch{align-self:stretch}.wp-block-column.is-vertically-aligned-bottom,.wp-block-column.is-vertically-aligned-center,.wp-block-column.is-vertically-aligned-top{width:100%}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/columns/style.min.css */
+</style>
+<style id="wp-block-post-template-inline-css">
+.wp-block-post-template{box-sizing:border-box;list-style:none;margin-bottom:0;margin-top:0;max-width:100%;padding:0}.wp-block-post-template.is-flex-container{display:flex;flex-direction:row;flex-wrap:wrap;gap:1.25em}.wp-block-post-template.is-flex-container>li{margin:0;width:100%}@media (min-width:600px){.wp-block-post-template.is-flex-container.is-flex-container.columns-2>li{width:calc(50% - .625em)}.wp-block-post-template.is-flex-container.is-flex-container.columns-3>li{width:calc(33.33333% - .83333em)}.wp-block-post-template.is-flex-container.is-flex-container.columns-4>li{width:calc(25% - .9375em)}.wp-block-post-template.is-flex-container.is-flex-container.columns-5>li{width:calc(20% - 1em)}.wp-block-post-template.is-flex-container.is-flex-container.columns-6>li{width:calc(16.66667% - 1.04167em)}}@media (max-width:600px){.wp-block-post-template-is-layout-grid[class*=columns-]:not(.has-native-responsive-grid){grid-template-columns:1fr}}.wp-block-post-template-is-layout-constrained>li>.alignright,.wp-block-post-template-is-layout-flow>li>.alignright{float:right;margin-inline-end:0;margin-inline-start:2em}.wp-block-post-template-is-layout-constrained>li>.alignleft,.wp-block-post-template-is-layout-flow>li>.alignleft{float:left;margin-inline-end:2em;margin-inline-start:0}.wp-block-post-template-is-layout-constrained>li>.aligncenter,.wp-block-post-template-is-layout-flow>li>.aligncenter{margin-inline-end:auto;margin-inline-start:auto}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/post-template/style.min.css */
+</style>
+<style id="wp-block-spacer-inline-css">
+.wp-block-spacer{clear:both}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/spacer/style.min.css */
+</style>
+<link crossorigin='anonymous' rel='stylesheet' id='all-css-36-1' href='/wp-content/mu-plugins/jetpack-mu-wpcom-plugin/moon/jetpack_vendor/automattic/jetpack-comments/build/comments.css?m=1792510721i&cssminify=yes' type='text/css' media='all' />
+<style id="wp-block-post-comments-form-inline-css">
+:where(.wp-block-post-comments-form input:not([type=submit])),:where(.wp-block-post-comments-form textarea){border:1px solid #949494;font-family:inherit;font-size:1em}:where(.wp-block-post-comments-form input:where(:not([type=submit]):not([type=checkbox]))),:where(.wp-block-post-comments-form textarea){padding:calc(.667em + 2px)}.wp-block-post-comments-form{box-sizing:border-box}.wp-block-post-comments-form[style*=font-weight] :where(.comment-reply-title){font-weight:inherit}.wp-block-post-comments-form[style*=font-family] :where(.comment-reply-title){font-family:inherit}.wp-block-post-comments-form[class*=-font-size] :where(.comment-reply-title),.wp-block-post-comments-form[style*=font-size] :where(.comment-reply-title){font-size:inherit}.wp-block-post-comments-form[style*=line-height] :where(.comment-reply-title){line-height:inherit}.wp-block-post-comments-form[style*=font-style] :where(.comment-reply-title){font-style:inherit}.wp-block-post-comments-form[style*=letter-spacing] :where(.comment-reply-title){letter-spacing:inherit}.wp-block-post-comments-form :where(input[type=submit]){box-shadow:none;cursor:pointer;display:inline-block;overflow-wrap:break-word;text-align:center}.wp-block-post-comments-form .comment-form input:not([type=submit]):not([type=checkbox]):not([type=hidden]),.wp-block-post-comments-form .comment-form textarea{box-sizing:border-box;display:block;width:100%}.wp-block-post-comments-form .comment-form-cookies-consent{display:flex;gap:.25em}.wp-block-post-comments-form .comment-form-cookies-consent #wp-comment-cookies-consent{margin-top:.35em}.wp-block-post-comments-form .comment-reply-title{margin-bottom:0}.wp-block-post-comments-form .comment-reply-title :where(small){font-size:var(--wp--preset--font-size--medium,smaller);margin-left:.5em}:where(.wp-block-post-comments-form .comment-form-author label),:where(.wp-block-post-comments-form .comment-form-email label),:where(.wp-block-post-comments-form .comment-form-url label){display:block;margin-bottom:.25em}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/post-comments-form/style.min.css */
+</style>
+<style id="wp-block-buttons-inline-css">
+.wp-block-buttons{box-sizing:border-box}.wp-block-buttons.is-vertical{flex-direction:column}.wp-block-buttons.is-vertical>.wp-block-button:last-child{margin-bottom:0}.wp-block-buttons>.wp-block-button{display:inline-block;margin:0}.wp-block-buttons.is-content-justification-left{justify-content:flex-start}.wp-block-buttons.is-content-justification-left.is-vertical{align-items:flex-start}.wp-block-buttons.is-content-justification-center{justify-content:center}.wp-block-buttons.is-content-justification-center.is-vertical{align-items:center}.wp-block-buttons.is-content-justification-right{justify-content:flex-end}.wp-block-buttons.is-content-justification-right.is-vertical{align-items:flex-end}.wp-block-buttons.is-content-justification-space-between{justify-content:space-between}.wp-block-buttons.aligncenter{text-align:center}.wp-block-buttons:not(.is-content-justification-space-between,.is-content-justification-right,.is-content-justification-left,.is-content-justification-center) .wp-block-button.aligncenter{margin-left:auto;margin-right:auto;width:100%}.wp-block-buttons[style*=text-decoration] .wp-block-button,.wp-block-buttons[style*=text-decoration] .wp-block-button__link{text-decoration:inherit}.wp-block-buttons.has-custom-font-size .wp-block-button__link{font-size:inherit}.wp-block-buttons .wp-block-button__link{width:100%}.wp-block-button.aligncenter{text-align:center}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/buttons/style.min.css */
+</style>
+<style id="wp-block-button-inline-css">
+.wp-block-button__link{align-content:center;box-sizing:border-box;cursor:pointer;display:inline-block;height:100%;overflow-wrap:anywhere;text-align:center;word-break:normal}.wp-block-button__link.aligncenter{text-align:center}.wp-block-button__link.alignright{text-align:right}:where(.wp-block-button__link){border-radius:9999px;box-shadow:none;padding:calc(.667em + 2px) calc(1.333em + 2px);text-decoration:none}.wp-block-button[style*=text-decoration] .wp-block-button__link{text-decoration:inherit}.wp-block-buttons>.wp-block-button.has-custom-width{max-width:none}.wp-block-buttons>.wp-block-button.has-custom-width .wp-block-button__link{width:100%}.wp-block-buttons>.wp-block-button.has-custom-font-size .wp-block-button__link{font-size:inherit}.wp-block-buttons>.wp-block-button[class*=wp-block-button__width]{width:calc(var(--wp--block-button--width)*1% - var(--wp--style--block-gap, .5em)*(1 - var(--wp--block-button--width)/100))}.wp-block-buttons>.wp-block-button.wp-block-button__width-25{width:calc(25% - var(--wp--style--block-gap, .5em)*.75)}.wp-block-buttons>.wp-block-button.wp-block-button__width-50{width:calc(50% - var(--wp--style--block-gap, .5em)*.5)}.wp-block-buttons>.wp-block-button.wp-block-button__width-75{width:calc(75% - var(--wp--style--block-gap, .5em)*.25)}.wp-block-buttons>.wp-block-button.wp-block-button__width-100{flex-basis:100%;width:100%}.wp-block-buttons.is-vertical>.wp-block-button[class*=wp-block-button__width]{width:calc(var(--wp--block-button--width)*1%)}.wp-block-buttons.is-vertical>.wp-block-button.wp-block-button__width-25{width:25%}.wp-block-buttons.is-vertical>.wp-block-button.wp-block-button__width-50{width:50%}.wp-block-buttons.is-vertical>.wp-block-button.wp-block-button__width-75{width:75%}.wp-block-button.is-style-squared,.wp-block-button__link.wp-block-button.is-style-squared{border-radius:0}.wp-block-button.no-border-radius,.wp-block-button__link.no-border-radius{border-radius:0!important}:root :where(.wp-block-button .wp-block-button__link.is-style-outline),:root :where(.wp-block-button.is-style-outline>.wp-block-button__link){border:2px solid;padding:.667em 1.333em}:root :where(.wp-block-button .wp-block-button__link.is-style-outline:not(.has-text-color)),:root :where(.wp-block-button.is-style-outline>.wp-block-button__link:not(.has-text-color)){color:currentColor}:root :where(.wp-block-button .wp-block-button__link.is-style-outline:not(.has-background)),:root :where(.wp-block-button.is-style-outline>.wp-block-button__link:not(.has-background)){background-color:transparent;background-image:none}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/button/style.min.css */
+</style>
+<style id="wp-block-comments-inline-css">
+.wp-block-post-comments{box-sizing:border-box}.wp-block-post-comments .alignleft{float:left}.wp-block-post-comments .alignright{float:right}.wp-block-post-comments .navigation:after{clear:both;content:"";display:table}.wp-block-post-comments .commentlist{clear:both;list-style:none;margin:0;padding:0}.wp-block-post-comments .commentlist .comment{min-height:2.25em;padding-left:3.25em}.wp-block-post-comments .commentlist .comment p{font-size:1em;line-height:1.8;margin:1em 0}.wp-block-post-comments .commentlist .children{list-style:none;margin:0;padding:0}.wp-block-post-comments .comment-author{line-height:1.5}.wp-block-post-comments .comment-author .avatar{border-radius:1.5em;display:block;float:left;height:2.5em;margin-right:.75em;margin-top:.5em;width:2.5em}.wp-block-post-comments .comment-author cite{font-style:normal}.wp-block-post-comments .comment-meta{font-size:.875em;line-height:1.5}.wp-block-post-comments .comment-meta b{font-weight:400}.wp-block-post-comments .comment-meta .comment-awaiting-moderation{display:block;margin-bottom:1em;margin-top:1em}.wp-block-post-comments .comment-body .commentmetadata{font-size:.875em}.wp-block-post-comments .comment-form input:not([type=submit]):not([type=checkbox]),.wp-block-post-comments .comment-form textarea{box-sizing:border-box;display:block;width:100%}.wp-block-post-comments .comment-form-cookies-consent{display:flex;gap:.25em}.wp-block-post-comments .comment-form-cookies-consent #wp-comment-cookies-consent{margin-top:.35em}.wp-block-post-comments .comment-reply-title{margin-bottom:0}.wp-block-post-comments .comment-reply-title :where(small){font-size:var(--wp--preset--font-size--medium,smaller);margin-left:.5em}.wp-block-post-comments .reply{font-size:.875em;margin-bottom:1.4em}.wp-block-post-comments input:not([type=submit]),.wp-block-post-comments textarea{border:1px solid #949494;font-family:inherit;font-size:1em}.wp-block-post-comments input:not([type=submit]):not([type=checkbox]),.wp-block-post-comments textarea{padding:calc(.667em + 2px)}:where(.wp-block-post-comments .comment-form-author label),:where(.wp-block-post-comments .comment-form-comment label),:where(.wp-block-post-comments .comment-form-email label),:where(.wp-block-post-comments .comment-form-url label){display:block;margin-bottom:.25em}:where(.wp-block-post-comments input[type=submit]){border:none}.wp-block-comments{box-sizing:border-box}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/comments/style.min.css */
+</style>
+<style id="wp-block-search-inline-css">
+.wp-block-search__button{margin-left:10px;word-break:normal}.wp-block-search__button.has-icon{line-height:0}.wp-block-search__button svg{fill:currentColor;height:1.25em;min-height:24px;min-width:24px;vertical-align:text-bottom;width:1.25em}:where(.wp-block-search__button){border:1px solid #ccc;padding:6px 10px}.wp-block-search__inside-wrapper{display:flex;flex:auto;flex-wrap:nowrap;max-width:100%}:where(.wp-block-search__label){width:100%}.wp-block-search.wp-block-search__button-only .wp-block-search__button{box-sizing:border-box;display:flex;flex-shrink:0;justify-content:center;margin-left:0;max-width:100%}.wp-block-search.wp-block-search__button-only .wp-block-search__inside-wrapper{min-width:0!important;transition-property:width}.wp-block-search.wp-block-search__button-only .wp-block-search__input{flex-basis:100%;transition-duration:.3s}.wp-block-search.wp-block-search__button-only.wp-block-search__searchfield-hidden,.wp-block-search.wp-block-search__button-only.wp-block-search__searchfield-hidden .wp-block-search__inside-wrapper{overflow:hidden}.wp-block-search.wp-block-search__button-only.wp-block-search__searchfield-hidden .wp-block-search__input{border-left-width:0!important;border-right-width:0!important;flex-basis:0;flex-grow:0;margin:0;min-width:0!important;padding-left:0!important;padding-right:0!important;width:0!important}:where(.wp-block-search__input){appearance:none;border:1px solid #949494;flex-grow:1;font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;margin-left:0;margin-right:0;min-width:3rem;padding:8px;text-decoration:unset!important;text-transform:inherit}:where(.wp-block-search__button-inside .wp-block-search__inside-wrapper){background-color:#fff;border:1px solid #949494;box-sizing:border-box;padding:4px}:where(.wp-block-search__button-inside .wp-block-search__inside-wrapper) .wp-block-search__input{border:none;border-radius:0;padding:0 4px}:where(.wp-block-search__button-inside .wp-block-search__inside-wrapper) .wp-block-search__input:focus{outline:none}:where(.wp-block-search__button-inside .wp-block-search__inside-wrapper) :where(.wp-block-search__button){padding:4px 8px}.wp-block-search.aligncenter .wp-block-search__inside-wrapper{margin:auto}.wp-block[data-align=right] .wp-block-search.wp-block-search__button-only .wp-block-search__inside-wrapper{float:right}
+/*# sourceURL=/wp-content/plugins/gutenberg-core/v24.2.0/build/styles/block-library/search/style.min.css */
+</style>
+<style id="wp-emoji-styles-inline-css">
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+/*# sourceURL=wp-emoji-styles-inline-css */
+</style>
+<style id="wp-block-library-inline-css">
+:root{--wp-block-synced-color:#7a00df;--wp-block-synced-color--rgb:122,0,223;--wp-bound-block-color:var(--wp-block-synced-color);--wp-editor-canvas-background:#ddd;--wp-admin-theme-color:#3858e9;--wp-admin-theme-color--rgb:56,88,233;--wp-admin-theme-color-darker-10:#2145e6;--wp-admin-theme-color-darker-10--rgb:33.0384615385,68.7307692308,230.4615384615;--wp-admin-theme-color-darker-20:#183ad6;--wp-admin-theme-color-darker-20--rgb:23.6923076923,58.1538461538,214.3076923077;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){:root{--wp-admin-border-width-focus:1.5px}}body.admin-color-fresh{--wp-admin-theme-color:#007cba;--wp-admin-theme-color--rgb:0,124,186;--wp-admin-theme-color-darker-10:#006ba1;--wp-admin-theme-color-darker-10--rgb:0,107,160.5;--wp-admin-theme-color-darker-20:#005a87;--wp-admin-theme-color-darker-20--rgb:0,90,135;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){body.admin-color-fresh{--wp-admin-border-width-focus:1.5px}}.wp-element-button{cursor:pointer}:root .has-very-light-gray-background-color{background-color:#eee}:root .has-very-dark-gray-background-color{background-color:#313131}:root .has-very-light-gray-color{color:#eee}:root .has-very-dark-gray-color{color:#313131}:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background{background:linear-gradient(135deg,#00d084,#0693e3)}:root .has-purple-crush-gradient-background{background:linear-gradient(135deg,#34e2e4,#4721fb 50%,#ab1dfe)}:root .has-hazy-dawn-gradient-background{background:linear-gradient(135deg,#faaca8,#dad0ec)}:root .has-subdued-olive-gradient-background{background:linear-gradient(135deg,#fafae1,#67a671)}:root .has-atomic-cream-gradient-background{background:linear-gradient(135deg,#fdd79a,#004a59)}:root .has-nightshade-gradient-background{background:linear-gradient(135deg,#330968,#31cdcf)}:root .has-midnight-gradient-background{background:linear-gradient(135deg,#020381,#2874fc)}:root{--wp--preset--font-size--normal:16px;--wp--preset--font-size--huge:42px}.has-regular-font-size{font-size:1em}.has-larger-font-size{font-size:2.625em}.has-normal-font-size{font-size:var(--wp--preset--font-size--normal)}.has-huge-font-size{font-size:var(--wp--preset--font-size--huge)}:root .has-text-align-center{text-align:center}:root .has-text-align-left{text-align:left}:root .has-text-align-right{text-align:right}.has-fit-text{white-space:nowrap!important}#end-resizable-editor-section{display:none}.aligncenter{clear:both}.items-justified-left{justify-content:flex-start}.items-justified-center{justify-content:center}.items-justified-right{justify-content:flex-end}.items-justified-space-between{justify-content:space-between}.screen-reader-text{border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;overflow-wrap:normal!important;padding:0;position:absolute;width:1px;word-break:normal!important}.screen-reader-text:focus{background-color:#ddd;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}html :where(.has-border-color){border-style:solid}html :where([style^=border-color],[style*=";border-color"],[style*="; border-color"]){border-style:solid}html :where([style^=border-top-color],[style*=";border-top-color"],[style*="; border-top-color"]){border-top-style:solid}html :where([style^=border-right-color],[style*=";border-right-color"],[style*="; border-right-color"]){border-right-style:solid}html :where([style^=border-bottom-color],[style*=";border-bottom-color"],[style*="; border-bottom-color"]){border-bottom-style:solid}html :where([style^=border-left-color],[style*=";border-left-color"],[style*="; border-left-color"]){border-left-style:solid}html :where([style^=border-width],[style*=";border-width"],[style*="; border-width"]){border-style:solid}html :where([style^=border-top-width],[style*=";border-top-width"],[style*="; border-top-width"]){border-top-style:solid}html :where([style^=border-right-width],[style*=";border-right-width"],[style*="; border-right-width"]){border-right-style:solid}html :where([style^=border-bottom-width],[style*=";border-bottom-width"],[style*="; border-bottom-width"]){border-bottom-style:solid}html :where([style^=border-left-width],[style*=";border-left-width"],[style*="; border-left-width"]){border-left-style:solid}html :where(img[class*=wp-image-]){height:auto;max-width:100%}:where(figure){margin:0 0 1em}html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:var(--wp-admin--admin-bar--height,0px)}@media screen and (max-width:600px){html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:0px}}@supports (not (-webkit-backdrop-filter:blur(1px))) and (not (-moz-appearance:none)){mtd[columnalign=right]{text-align:-webkit-right}mtd[columnalign=left]{text-align:-webkit-left}menclose[notation~=top]{border-top:.065em solid;padding-top:.1em}menclose[notation~=bottom]{border-bottom:.065em solid;padding-bottom:.1em}}
+.has-text-align-justify {
+	text-align:justify;
+}
+.has-text-align-justify{text-align:justify;}
+/*# sourceURL=wp-block-library-inline-css */
+</style>
+<style id="coblocks-inline-format-inline-css">
+.uppercase{text-transform:uppercase}
+/*# sourceURL=coblocks-inline-format-inline-css */
+</style>
+<link crossorigin='anonymous' rel='stylesheet' id='all-css-52-1' href='/wp-content/plugins/coblocks/2.18.1-simple-rev.4/dist/coblocks-style.css?m=1681832297i&cssminify=yes' type='text/css' media='all' />
+<style id="wp-block-template-skip-link-inline-css">
+/*! This file is auto-generated */
+.skip-link.screen-reader-text{border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute!important;width:1px;word-wrap:normal!important;word-break:normal!important}.skip-link.screen-reader-text:focus{background-color:#eee;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}
+/*# sourceURL=/wp-includes/css/wp-block-template-skip-link.min.css */
+</style>
+<link crossorigin='anonymous' rel='stylesheet' id='all-css-54-1' href='/_static/??-eJx9jdEKwjAMRX/IGEXF7UH8lrYL2tm0oWnZ7y8D8UHElwsn9x6Ci0AouVFuyB0k9UfMiqFUsjuLa2gLpik6SsQ22wfVHf7WFjEHvJdKqmDJsTO0p4n6z5upiQuvNyOXssXUEylq9xpqlBZL/pAnsN6lb96e3Pl2vF5Oh2E8j8O8AvKaVKM=&cssminify=yes' type='text/css' media='all' />
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--color--primary: #000000;--wp--preset--color--secondary: #454545;--wp--preset--color--foreground: #000000;--wp--preset--color--background: #c7c7c7;--wp--preset--color--tertiary: #dadada;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: clamp(0.825rem, 0.825rem + ((1vw - 0.2rem) * 0.56), 1.0625rem);--wp--preset--font-size--medium: clamp(1rem, 1rem + ((1vw - 0.2rem) * 0.588), 1.25rem);--wp--preset--font-size--large: clamp(1.75rem, 1.75rem + ((1vw - 0.2rem) * 0.588), 2rem);--wp--preset--font-size--x-large: clamp(2.5rem, 2.5rem + ((1vw - 0.2rem) * 1.176), 3rem);--wp--preset--font-family--albert-sans: 'Albert Sans', sans-serif;--wp--preset--font-family--alegreya: Alegreya, serif;--wp--preset--font-family--arvo: Arvo, serif;--wp--preset--font-family--bodoni-moda: 'Bodoni Moda', serif;--wp--preset--font-family--bricolage-grotesque: 'Bricolage Grotesque', sans-serif;--wp--preset--font-family--cabin: Cabin, sans-serif;--wp--preset--font-family--chivo: Chivo, sans-serif;--wp--preset--font-family--commissioner: Commissioner, sans-serif;--wp--preset--font-family--cormorant: Cormorant, serif;--wp--preset--font-family--courier-prime: 'Courier Prime', monospace;--wp--preset--font-family--crimson-pro: 'Crimson Pro', serif;--wp--preset--font-family--dm-mono: 'DM Mono', monospace;--wp--preset--font-family--dm-sans: 'DM Sans', sans-serif;--wp--preset--font-family--dm-serif-display: 'DM Serif Display', serif;--wp--preset--font-family--domine: Domine, serif;--wp--preset--font-family--eb-garamond: 'EB Garamond', serif;--wp--preset--font-family--epilogue: Epilogue, sans-serif;--wp--preset--font-family--fahkwang: Fahkwang, sans-serif;--wp--preset--font-family--figtree: Figtree, sans-serif;--wp--preset--font-family--fira-sans: 'Fira Sans', sans-serif;--wp--preset--font-family--fjalla-one: 'Fjalla One', sans-serif;--wp--preset--font-family--fraunces: Fraunces, serif;--wp--preset--font-family--gabarito: Gabarito, system-ui;--wp--preset--font-family--ibm-plex-mono: 'IBM Plex Mono', monospace;--wp--preset--font-family--ibm-plex-sans: 'IBM Plex Sans', sans-serif;--wp--preset--font-family--ibarra-real-nova: 'Ibarra Real Nova', serif;--wp--preset--font-family--instrument-serif: 'Instrument Serif', serif;--wp--preset--font-family--inter: Inter, sans-serif;--wp--preset--font-family--josefin-sans: 'Josefin Sans', sans-serif;--wp--preset--font-family--jost: Jost, sans-serif;--wp--preset--font-family--libre-baskerville: 'Libre Baskerville', serif;--wp--preset--font-family--libre-franklin: 'Libre Franklin', sans-serif;--wp--preset--font-family--literata: Literata, serif;--wp--preset--font-family--lora: Lora, serif;--wp--preset--font-family--merriweather: Merriweather, serif;--wp--preset--font-family--montserrat: Montserrat, sans-serif;--wp--preset--font-family--newsreader: Newsreader, serif;--wp--preset--font-family--noto-sans-mono: 'Noto Sans Mono', sans-serif;--wp--preset--font-family--nunito: Nunito, sans-serif;--wp--preset--font-family--open-sans: 'Open Sans', sans-serif;--wp--preset--font-family--overpass: Overpass, sans-serif;--wp--preset--font-family--pt-serif: 'PT Serif', serif;--wp--preset--font-family--petrona: Petrona, serif;--wp--preset--font-family--piazzolla: Piazzolla, serif;--wp--preset--font-family--playfair-display: 'Playfair Display', serif;--wp--preset--font-family--plus-jakarta-sans: 'Plus Jakarta Sans', sans-serif;--wp--preset--font-family--poppins: Poppins, sans-serif;--wp--preset--font-family--raleway: Raleway, sans-serif;--wp--preset--font-family--roboto: Roboto, sans-serif;--wp--preset--font-family--roboto-slab: 'Roboto Slab', serif;--wp--preset--font-family--rubik: Rubik, sans-serif;--wp--preset--font-family--rufina: Rufina, serif;--wp--preset--font-family--sora: Sora, sans-serif;--wp--preset--font-family--source-sans-3: 'Source Sans 3', sans-serif;--wp--preset--font-family--source-serif-4: 'Source Serif 4', serif;--wp--preset--font-family--space-mono: 'Space Mono', monospace;--wp--preset--font-family--syne: Syne, sans-serif;--wp--preset--font-family--texturina: Texturina, serif;--wp--preset--font-family--urbanist: Urbanist, sans-serif;--wp--preset--font-family--work-sans: 'Work Sans', sans-serif;--wp--preset--font-family--system-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;--wp--preset--text-shadow--light: 0.05em 0.05em 0.1em rgba(0, 0, 0, 0.3);--wp--preset--text-shadow--strong: 0.1em 0.1em 0.25em rgba(0, 0, 0, 0.5);--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}.wp-block-button{--wp--preset--dimension--25: 25%;--wp--preset--dimension--50: 50%;--wp--preset--dimension--75: 75%;--wp--preset--dimension--100: 100%;}:root { --wp--style--global--content-size: 620px;--wp--style--global--wide-size: 1000px; }:where(body) { margin: 0; }.wp-site-blocks { padding-top: var(--wp--style--root--padding-top); padding-bottom: var(--wp--style--root--padding-bottom); }.has-global-padding { padding-right: var(--wp--style--root--padding-right); padding-left: var(--wp--style--root--padding-left); }.has-global-padding > .alignfull { margin-right: calc(var(--wp--style--root--padding-right) * -1); margin-left: calc(var(--wp--style--root--padding-left) * -1); }.has-global-padding :where(:not(.alignfull.is-layout-flow) > .has-global-padding:not(.wp-block-block, .alignfull)) { padding-right: 0; padding-left: 0; }.has-global-padding :where(:not(.alignfull.is-layout-flow) > .has-global-padding:not(.wp-block-block, .alignfull)) > .alignfull { margin-left: 0; margin-right: 0; }.wp-site-blocks > .alignleft { float: left; margin-right: 2em; }.wp-site-blocks > .alignright { float: right; margin-left: 2em; }.wp-site-blocks > .aligncenter { justify-content: center; margin-left: auto; margin-right: auto; }:where(.wp-site-blocks) > * { margin-block-start: var(--wp--preset--spacing--50); margin-block-end: 0; }:where(.wp-site-blocks) > :first-child { margin-block-start: 0; }:where(.wp-site-blocks) > :last-child { margin-block-end: 0; }:root { --wp--style--block-gap: var(--wp--preset--spacing--50); }:root :where(.is-layout-flow) > :first-child{margin-block-start: 0;}:root :where(.is-layout-flow) > :last-child{margin-block-end: 0;}:root :where(.is-layout-flow) > *{margin-block-start: var(--wp--preset--spacing--50);margin-block-end: 0;}:root :where(.is-layout-constrained) > :first-child{margin-block-start: 0;}:root :where(.is-layout-constrained) > :last-child{margin-block-end: 0;}:root :where(.is-layout-constrained) > *{margin-block-start: var(--wp--preset--spacing--50);margin-block-end: 0;}:root :where(.is-layout-flex){gap: var(--wp--preset--spacing--50);}:root :where(.is-layout-grid){gap: var(--wp--preset--spacing--50);}.is-layout-flow > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-flow > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-flow > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-constrained > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-constrained > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width: var(--wp--style--global--content-size);margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignwide{max-width: var(--wp--style--global--wide-size);}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{background-color: var(--wp--preset--color--background);color: var(--wp--preset--color--foreground);font-family: var(--wp--preset--font-family--system-font);font-size: var(--wp--preset--font-size--medium);font-style: normal;font-weight: 300;line-height: 1.6;--wp--style--root--padding-top: var(--wp--preset--spacing--50);--wp--style--root--padding-right: var(--wp--preset--spacing--50);--wp--style--root--padding-bottom: var(--wp--preset--spacing--50);--wp--style--root--padding-left: var(--wp--preset--spacing--50);}a:where(:not(.wp-element-button)){color: var(--wp--preset--color--primary);font-family: var(--wp--preset--font-family--system-font);}:root :where(a:where(:not(.wp-element-button)):hover){text-decoration: none;}h1, h2, h3, h4, h5, h6{font-family: var(--wp--preset--font-family--system-font);font-weight: 400;line-height: 1.125;}h1{font-size: var(--wp--preset--font-size--x-large);}h2{font-size: var(--wp--preset--font-size--large);}h3{font-size: clamp(1.5rem, calc(1.5rem + ((1vw - 0.48rem) * 0.4808)), 1.75rem);}h4{font-size: clamp(1.25rem, calc(1.25rem + ((1vw - 0.48rem) * 0.4808)), 1.5rem);}h5{font-size: var(--wp--preset--font-size--medium);}h6{font-size: var(--wp--preset--font-size--small);}:root :where(.wp-element-button, .wp-block-button__link){background-color: var(--wp--preset--color--primary);border-radius: 0.25rem;border-width: 0;color: var(--wp--preset--color--background);font-family: var(--wp--preset--font-family--system-font);font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}:root :where(.wp-element-button:hover, .wp-block-button__link:hover){background-color: var(--wp--preset--color--secondary);color: var(--wp--preset--color--background);}:root :where(.wp-element-button:focus, .wp-block-button__link:focus){background-color: var(--wp--preset--color--primary);color: var(--wp--preset--color--background);outline-color: var(--wp--preset--color--primary);outline-offset: 2px;outline-style: dotted;outline-width: 1px;}:root :where(.wp-element-button:active, .wp-block-button__link:active){background-color: var(--wp--preset--color--primary);color: var(--wp--preset--color--background);}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-primary-color{color: var(--wp--preset--color--primary) !important;}.has-secondary-color{color: var(--wp--preset--color--secondary) !important;}.has-foreground-color{color: var(--wp--preset--color--foreground) !important;}.has-background-color{color: var(--wp--preset--color--background) !important;}.has-tertiary-color{color: var(--wp--preset--color--tertiary) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-primary-background-color{background-color: var(--wp--preset--color--primary) !important;}.has-secondary-background-color{background-color: var(--wp--preset--color--secondary) !important;}.has-foreground-background-color{background-color: var(--wp--preset--color--foreground) !important;}.has-background-background-color{background-color: var(--wp--preset--color--background) !important;}.has-tertiary-background-color{background-color: var(--wp--preset--color--tertiary) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-primary-border-color{border-color: var(--wp--preset--color--primary) !important;}.has-secondary-border-color{border-color: var(--wp--preset--color--secondary) !important;}.has-foreground-border-color{border-color: var(--wp--preset--color--foreground) !important;}.has-background-border-color{border-color: var(--wp--preset--color--background) !important;}.has-tertiary-border-color{border-color: var(--wp--preset--color--tertiary) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}.has-albert-sans-font-family{font-family: var(--wp--preset--font-family--albert-sans) !important;}.has-alegreya-font-family{font-family: var(--wp--preset--font-family--alegreya) !important;}.has-arvo-font-family{font-family: var(--wp--preset--font-family--arvo) !important;}.has-bodoni-moda-font-family{font-family: var(--wp--preset--font-family--bodoni-moda) !important;}.has-bricolage-grotesque-font-family{font-family: var(--wp--preset--font-family--bricolage-grotesque) !important;}.has-cabin-font-family{font-family: var(--wp--preset--font-family--cabin) !important;}.has-chivo-font-family{font-family: var(--wp--preset--font-family--chivo) !important;}.has-commissioner-font-family{font-family: var(--wp--preset--font-family--commissioner) !important;}.has-cormorant-font-family{font-family: var(--wp--preset--font-family--cormorant) !important;}.has-courier-prime-font-family{font-family: var(--wp--preset--font-family--courier-prime) !important;}.has-crimson-pro-font-family{font-family: var(--wp--preset--font-family--crimson-pro) !important;}.has-dm-mono-font-family{font-family: var(--wp--preset--font-family--dm-mono) !important;}.has-dm-sans-font-family{font-family: var(--wp--preset--font-family--dm-sans) !important;}.has-dm-serif-display-font-family{font-family: var(--wp--preset--font-family--dm-serif-display) !important;}.has-domine-font-family{font-family: var(--wp--preset--font-family--domine) !important;}.has-eb-garamond-font-family{font-family: var(--wp--preset--font-family--eb-garamond) !important;}.has-epilogue-font-family{font-family: var(--wp--preset--font-family--epilogue) !important;}.has-fahkwang-font-family{font-family: var(--wp--preset--font-family--fahkwang) !important;}.has-figtree-font-family{font-family: var(--wp--preset--font-family--figtree) !important;}.has-fira-sans-font-family{font-family: var(--wp--preset--font-family--fira-sans) !important;}.has-fjalla-one-font-family{font-family: var(--wp--preset--font-family--fjalla-one) !important;}.has-fraunces-font-family{font-family: var(--wp--preset--font-family--fraunces) !important;}.has-gabarito-font-family{font-family: var(--wp--preset--font-family--gabarito) !important;}.has-ibm-plex-mono-font-family{font-family: var(--wp--preset--font-family--ibm-plex-mono) !important;}.has-ibm-plex-sans-font-family{font-family: var(--wp--preset--font-family--ibm-plex-sans) !important;}.has-ibarra-real-nova-font-family{font-family: var(--wp--preset--font-family--ibarra-real-nova) !important;}.has-instrument-serif-font-family{font-family: var(--wp--preset--font-family--instrument-serif) !important;}.has-inter-font-family{font-family: var(--wp--preset--font-family--inter) !important;}.has-josefin-sans-font-family{font-family: var(--wp--preset--font-family--josefin-sans) !important;}.has-jost-font-family{font-family: var(--wp--preset--font-family--jost) !important;}.has-libre-baskerville-font-family{font-family: var(--wp--preset--font-family--libre-baskerville) !important;}.has-libre-franklin-font-family{font-family: var(--wp--preset--font-family--libre-franklin) !important;}.has-literata-font-family{font-family: var(--wp--preset--font-family--literata) !important;}.has-lora-font-family{font-family: var(--wp--preset--font-family--lora) !important;}.has-merriweather-font-family{font-family: var(--wp--preset--font-family--merriweather) !important;}.has-montserrat-font-family{font-family: var(--wp--preset--font-family--montserrat) !important;}.has-newsreader-font-family{font-family: var(--wp--preset--font-family--newsreader) !important;}.has-noto-sans-mono-font-family{font-family: var(--wp--preset--font-family--noto-sans-mono) !important;}.has-nunito-font-family{font-family: var(--wp--preset--font-family--nunito) !important;}.has-open-sans-font-family{font-family: var(--wp--preset--font-family--open-sans) !important;}.has-overpass-font-family{font-family: var(--wp--preset--font-family--overpass) !important;}.has-pt-serif-font-family{font-family: var(--wp--preset--font-family--pt-serif) !important;}.has-petrona-font-family{font-family: var(--wp--preset--font-family--petrona) !important;}.has-piazzolla-font-family{font-family: var(--wp--preset--font-family--piazzolla) !important;}.has-playfair-display-font-family{font-family: var(--wp--preset--font-family--playfair-display) !important;}.has-plus-jakarta-sans-font-family{font-family: var(--wp--preset--font-family--plus-jakarta-sans) !important;}.has-poppins-font-family{font-family: var(--wp--preset--font-family--poppins) !important;}.has-raleway-font-family{font-family: var(--wp--preset--font-family--raleway) !important;}.has-roboto-font-family{font-family: var(--wp--preset--font-family--roboto) !important;}.has-roboto-slab-font-family{font-family: var(--wp--preset--font-family--roboto-slab) !important;}.has-rubik-font-family{font-family: var(--wp--preset--font-family--rubik) !important;}.has-rufina-font-family{font-family: var(--wp--preset--font-family--rufina) !important;}.has-sora-font-family{font-family: var(--wp--preset--font-family--sora) !important;}.has-source-sans-3-font-family{font-family: var(--wp--preset--font-family--source-sans-3) !important;}.has-source-serif-4-font-family{font-family: var(--wp--preset--font-family--source-serif-4) !important;}.has-space-mono-font-family{font-family: var(--wp--preset--font-family--space-mono) !important;}.has-syne-font-family{font-family: var(--wp--preset--font-family--syne) !important;}.has-texturina-font-family{font-family: var(--wp--preset--font-family--texturina) !important;}.has-urbanist-font-family{font-family: var(--wp--preset--font-family--urbanist) !important;}.has-work-sans-font-family{font-family: var(--wp--preset--font-family--work-sans) !important;}.has-system-font-font-family{font-family: var(--wp--preset--font-family--system-font) !important;}.has-light-text-shadow{text-shadow: var(--wp--preset--text-shadow--light) !important;}.has-strong-text-shadow{text-shadow: var(--wp--preset--text-shadow--strong) !important;}.entry-content p,
+.wp-block-post-content p {
+	text-align: justify;
+	text-justify: inter-word;
+	hyphens: auto;
+}
+:root :where(.wp-block-button .wp-block-button__link){border-radius: 4px;border-top-width: 0px;border-top-style: none;border-right-width: 0px;border-right-style: none;border-bottom-width: 0px;border-bottom-style: none;border-left-width: 0px;border-left-style: none;}
+:root :where(.wp-block-columns.wp-block-columns ){margin-bottom: 0.12em;}
+:root :where(.wp-block-post-template.is-layout-flow > * + * ){margin-block-start: 0.6rem; margin-block-end: 0rem;}
+:root :where(.wp-block-list){padding-left: var(--wp--preset--spacing--70);}
+:root :where(.wp-block-post-comments-form){font-size: var(--wp--preset--font-size--medium);}:root :where(.wp-block-post-comments-form textarea){appearance: auto; color: text; background-color: #dadada; border-style: none; border-radius: 4px; -webkit-rtl-ordering: logical; -webkit-user-select: text; padding-top: 20px; padding-right: 20px; padding-bottom: 20px; padding-left: 20px; flex-direction: column; resize: auto; cursor: auto; white-space: pre-wrap; overflow-wrap: break-word;}
+:root :where(.wp-block-post-date){color: var(--wp--preset--color--secondary);font-size: clamp(1.039rem, 1.039rem + ((1vw - 0.2rem) * 1.32), 1.6rem);}
+:root :where(.wp-block-post-date a:where(:not(.wp-element-button))){text-decoration: none;}
+:root :where(.wp-block-post-date a:where(:not(.wp-element-button)):hover){text-decoration: underline;}
+:root :where(.wp-block-post-title){font-size: clamp(1.039rem, 1.039rem + ((1vw - 0.2rem) * 1.32), 1.6rem);font-style: normal;font-weight: 300;letter-spacing: 0px;margin-bottom: 0;}
+:root :where(.wp-block-post-title a:where(:not(.wp-element-button))){text-decoration: none;}
+:root :where(.wp-block-post-title a:where(:not(.wp-element-button)):hover){text-decoration: underline;}
+:root :where(.wp-block-search){font-size: var(--wp--preset--font-size--medium);line-height: 1.6;}:root :where(.wp-block-search.wp-block-search__button-outside .wp-block-search__input, .wp-block-search.wp-block-search__button-outside .wp-block-search__button, .wp-block-search.wp-block-search__no-button .wp-block-search__input, .wp-block-search.wp-block-search__button-only .wp-block-search__input, .wp-block-search.wp-block-search__button-only .wp-block-search__button, .wp-block-search.wp-block-search__button-inside .wp-block-search__inside-wrapper){border-radius: 10px;border-top-width: 0px;border-top-style: none;border-right-width: 0px;border-right-style: none;border-bottom-width: 0px;border-bottom-style: none;border-left-width: 0px;border-left-style: none;}:root :where(.wp-block-search .wp-block-search__input){margin-left: 2px;margin-right: 2px;min-width: 3em;padding: 2px 26px 2px 26px;    background-color: #dadada;}
+:root :where(.wp-block-separator){border-color: currentColor;border-width: 0 0 1px 0;border-style: solid;color: var(--wp--preset--color--foreground);}
+:root :where(.wp-block-site-tagline){font-size: clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.059), 0.9rem);}
+:root :where(.wp-block-site-title){font-size: var(--wp--preset--font-size--medium);font-weight: 700;}
+:root :where(.wp-block-site-title a:where(:not(.wp-element-button))){text-decoration: none;}
+:root :where(.wp-block-site-title a:where(:not(.wp-element-button)):hover){text-decoration: underline;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+<style id="core-block-supports-inline-css">
+.wp-container-core-group-is-layout-c35747d5{gap:var(--wp--preset--spacing--30);flex-direction:column;align-items:flex-start;}.wp-container-core-group-is-layout-485895e9{justify-content:space-between;align-items:center;}.wp-container-core-group-is-layout-81d5c4b5 > *{margin-block-start:0;margin-block-end:0;}.wp-container-core-group-is-layout-81d5c4b5 > * + *{margin-block-start:var(--wp--preset--spacing--20);margin-block-end:0;}.wp-container-core-group-is-layout-992e1dda{gap:var(--wp--preset--spacing--40);flex-direction:column;align-items:flex-start;}.wp-container-core-group-is-layout-b821fca1 > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width:480px;margin-left:auto !important;margin-right:auto !important;}.wp-container-core-group-is-layout-b821fca1 > .alignwide{max-width:480px;}.wp-container-core-group-is-layout-b821fca1 .alignfull{max-width:none;}.wp-container-core-column-is-layout-5dafc681 > *{margin-block-start:0;margin-block-end:0;}.wp-container-core-column-is-layout-5dafc681 > * + *{margin-block-start:var(--wp--preset--spacing--50);margin-block-end:0;}.wp-container-core-columns-is-layout-e6f27d69{flex-wrap:nowrap;}.wp-container-core-columns-is-layout-f93a57d3{flex-wrap:nowrap;gap:6rem 6rem;}.wp-container-core-group-is-layout-19e250f3 > *{margin-block-start:0;margin-block-end:0;}.wp-container-core-group-is-layout-19e250f3 > * + *{margin-block-start:0;margin-block-end:0;}.wp-container-core-group-is-layout-15ea44a4 > *{margin-block-start:0;margin-block-end:0;}.wp-container-core-group-is-layout-15ea44a4 > * + *{margin-block-start:var(--wp--preset--spacing--60);margin-block-end:0;}
+/*# sourceURL=core-block-supports-inline-css */
+</style>
+<link crossorigin='anonymous' rel='stylesheet' id='all-css-58-1' href='/_static/??-eJx9jcEOAiEMRH9IbOCCF+O37JKKXQslC8T491s1cVdNvDQzr50O3IoJkhvmBqmbwj1SrhAkJUWG6Yrq6hfZK9kBQZZGmq5v8VpsfrYLJv1Q+ghVgY4748/VpnnGkSWqjM/a1f4LRRTDEoZGkj+MOfNA8yN6SkfrrbPe+YObFlZYW9A=&cssminify=yes' type='text/css' media='all' />
+<style id="jetpack-global-styles-frontend-style-inline-css">
+:root { --font-headings: unset; --font-base: unset; --font-headings-default: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; --font-base-default: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;}
+/*# sourceURL=jetpack-global-styles-frontend-style-inline-css */
+</style>
+<link crossorigin='anonymous' rel='stylesheet' id='all-css-60-1' href='/_static/??-eJyNjcEKAjEMRH/ImhVlqwfxU6TbhrZrmhTTIv69u+JFvHgZ5sHwBh7VeOGG3KB0U6nHzAoztur87cNQRNYInVBBk7tjcCE83zVz3HrVDfxvumb2MPVMAVR8dmRIougX/DhbwrK8pwNEksnROriU884e9+PJDnaYXxwFS20=&cssminify=yes' type='text/css' media='all' />
+<script id="wpcom-actionbar-placeholder-js-extra">
+var actionbardata = {"siteID":"126290534","postID":"1010","siteURL":"https://asheradeniyi.com","xhrURL":"https://asheradeniyi.com/wp-admin/admin-ajax.php","nonce":"9db01f0b68","isLoggedIn":"","statusMessage":"","statusSubscribed":"","subsEmailDefault":"instantly","proxyScriptUrl":"https://s0.wp.com/wp-content/js/wpcom-proxy-request.js?m=1513050504i&amp;ver=20211021","shortlink":"https://wp.me/p8xTW6-gi","i18n":{"followedText":"New posts from this site will now appear in your \u003Ca href=\"https://wordpress.com/reader\"\u003EReader\u003C/a\u003E","foldBar":"Collapse this bar","unfoldBar":"Expand this bar","shortLinkCopied":"Copied to clipboard."}};
+//# sourceURL=wpcom-actionbar-placeholder-js-extra
+</script>
+<script id="jetpack-blocks-assets-base-url-js-before">
+var Jetpack_Block_Assets_Base_Url="https://s0.wp.com/wp-content/mu-plugins/jetpack-plugin/moon/_inc/blocks/";
+//# sourceURL=jetpack-blocks-assets-base-url-js-before
+</script>
+<script id="jetpack-mu-wpcom-settings-js-before">
+var JETPACK_MU_WPCOM_SETTINGS = {"assetsUrl":"https://s1.wp.com/wp-content/mu-plugins/jetpack-mu-wpcom-plugin/moon/jetpack_vendor/automattic/jetpack-mu-wpcom/src/build/"};
+//# sourceURL=jetpack-mu-wpcom-settings-js-before
+</script>
+<script crossorigin='anonymous' type='text/javascript'  src='/wp-content/js/rlt-proxy.js?m=1720530689i'></script>
+<script id="rlt-proxy-js-after">
+	rltInitialize( {"token":null,"iframeOrigins":["https:\/\/widgets.wp.com"]} );
+//# sourceURL=rlt-proxy-js-after
+</script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://asheradeniyi.wordpress.com/xmlrpc.php?rsd" />
+<meta name="generator" content="WordPress.com" />
+<link rel="canonical" href="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/" />
+<link rel='shortlink' href='https://wp.me/p8xTW6-gi' />
+<link rel="alternate" type="application/json+oembed" href="https://public-api.wordpress.com/oembed/?format=json&amp;url=https%3A%2F%2Fasheradeniyi.com%2F2026%2F09%2F18%2Fai-will-erase-average-work%2F&amp;for=wpcom-auto-discovery" /><link rel="alternate" type="application/xml+oembed" href="https://public-api.wordpress.com/oembed/?format=xml&amp;url=https%3A%2F%2Fasheradeniyi.com%2F2026%2F09%2F18%2Fai-will-erase-average-work%2F&amp;for=wpcom-auto-discovery" />
+<!-- Jetpack Open Graph Tags -->
+<meta property="og:type" content="article" />
+<meta property="og:title" content="AI Will Erase Average Work" />
+<meta property="og:url" content="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/" />
+<meta property="og:description" content="This has been an eye-opening week for artificial intelligence. Every new demonstration seems to remove another excuse for ignoring what is happening. Systems can now research, write, analyse, code,…" />
+<meta property="article:published_time" content="2026-09-17T23:30:47+00:00" />
+<meta property="article:modified_time" content="2026-09-29T07:37:50+00:00" />
+<meta property="og:site_name" content="Asher&#039;s Blog" />
+<meta property="og:image" content="https://s0.wp.com/i/blank.jpg?m=1383295312i" />
+<meta property="og:image:width" content="200" />
+<meta property="og:image:height" content="200" />
+<meta property="og:image:alt" content="" />
+<meta property="og:locale" content="en_US" />
+<meta property="article:publisher" content="https://www.facebook.com/WordPresscom" />
+<meta name="twitter:text:title" content="AI Will Erase Average&nbsp;Work" />
+<meta name="twitter:card" content="summary" />
+
+<!-- End Jetpack Open Graph Tags -->
+<link rel="shortcut icon" type="image/x-icon" href="https://s1.wp.com/i/favicon.ico?m=1713425267i" sizes="16x16 24x24 32x32 48x48" />
+<link rel="icon" type="image/x-icon" href="https://s1.wp.com/i/favicon.ico?m=1713425267i" sizes="16x16 24x24 32x32 48x48" />
+<link rel="apple-touch-icon" href="https://s2.wp.com/i/webclip.png?m=1713868326i" />
+<link rel="search" type="application/opensearchdescription+xml" href="https://asheradeniyi.com/osd.xml" title="Asher&#039;s Blog" />
+<link rel="search" type="application/opensearchdescription+xml" href="https://s1.wp.com/opensearch.xml" title="WordPress.com" />
+<meta name="description" content="This has been an eye-opening week for artificial intelligence. Every new demonstration seems to remove another excuse for ignoring what is happening. Systems can now research, write, analyse, code, design, organise information and carry out increasingly long sequences of digital work. Tasks that recently required several different tools—and sometimes several different people—can now be coordinated&hellip;" />
+<noscript><style>.jetpack-comments{visibility:visible!important}</style></noscript></head>
+
+<body class="wp-singular post-template-default single single-post postid-1010 single-format-standard wp-embed-responsive wp-theme-pubsten is-block-theme customizer-styles-applied jetpack-reblog-enabled">
+
+<div class="wp-site-blocks"><header class="wp-block-template-part">
+<div class="wp-block-group has-global-padding is-layout-constrained wp-block-group-is-layout-constrained" style="padding-top:var(--wp--preset--spacing--50)">
+<div class="wp-block-group alignwide is-layout-flow wp-container-core-group-is-layout-81d5c4b5 wp-block-group-is-layout-flow">
+<div class="wp-block-group alignwide is-content-justification-space-between is-layout-flex wp-container-core-group-is-layout-485895e9 wp-block-group-is-layout-flex" style="padding-top:0;padding-right:0;padding-bottom:0;padding-left:0">
+<div class="wp-block-group is-vertical is-layout-flex wp-container-core-group-is-layout-c35747d5 wp-block-group-is-layout-flex"><h1 class="wp-block-site-title"><a href="https://asheradeniyi.com" target="_self" rel="home">Asher&#039;s Blog</a></h1></div>
+</div>
+
+
+
+<div class="wp-block-group alignwide is-content-justification-space-between is-layout-flex wp-container-core-group-is-layout-485895e9 wp-block-group-is-layout-flex" style="padding-top:0;padding-right:0;padding-bottom:0;padding-left:0"><p class="wp-block-site-tagline">my scruples</p></div>
+</div>
+</div>
+</header>
+
+
+<div class="wp-block-group has-global-padding is-layout-constrained wp-container-core-group-is-layout-19e250f3 wp-block-group-is-layout-constrained">
+<div class="wp-block-columns alignwide is-layout-flex wp-container-core-columns-is-layout-f93a57d3 wp-block-columns-is-layout-flex">
+<div class="wp-block-column is-layout-flow wp-container-core-column-is-layout-5dafc681 wp-block-column-is-layout-flow" style="flex-basis:70%">
+<div class="wp-block-group alignwide is-vertical is-layout-flex wp-container-core-group-is-layout-992e1dda wp-block-group-is-layout-flex" style="padding-bottom:var(--wp--preset--spacing--70)"><h2 style="font-size:clamp(1.25rem, 1.25rem + ((1vw - 0.2rem) * 1.765), 2rem)" class="alignwide wp-block-post-title">AI Will Erase Average&nbsp;Work</h2>
+
+<div class="wp-block-template-part">
+<div class="wp-block-group has-global-padding is-layout-constrained wp-block-group-is-layout-constrained">
+<div class="wp-block-group alignfull is-layout-flex wp-block-group-is-layout-flex"><div class="wp-block-post-date has-small-font-size"><a href="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/"><time datetime="2026-09-18T00:30:47+01:00">18.9.2026</time></a></div></div>
+</div>
+</div></div>
+
+
+<div class="entry-content wp-block-post-content is-layout-flow wp-block-post-content-is-layout-flow">
+<p class="wp-block-paragraph">This has been an eye-opening week for artificial intelligence. Every new demonstration seems to remove another excuse for ignoring what is happening. Systems can now research, write, analyse, code, design, organise information and carry out increasingly long sequences of digital work. Tasks that recently required several different tools—and sometimes several different people—can now be coordinated through one intelligent interface.</p>
+
+
+
+<p class="wp-block-paragraph">We do not know precisely how far this will go or how quickly every industry will change. But one conclusion is becoming difficult to avoid:</p>
+
+
+
+<p class="wp-block-paragraph">AI will erase average work. I do not mean that every average worker will immediately lose their job, or that human beings will disappear from companies. I mean that work which is repetitive, predictable, easily specified and delivered without distinctive judgment will become increasingly difficult to defend as a valuable human contribution.</p>
+
+
+
+<p class="wp-block-paragraph">If a machine can produce an acceptable version in seconds, “acceptable” is no longer a strong professional position.</p>
+
+
+
+<p class="wp-block-paragraph">This is not only a message for employees; founders and chief executives are also exposed. AI will absorb parts of a founder’s work, and eventually many companies will operate with something that resembles an AI chief executive: a system that remembers the company’s goals, monitors its performance, prepares decisions, communicates in the founder’s voice and coordinates specialised agents.</p>
+
+
+
+<p class="wp-block-paragraph">I am already thinking in that direction. I am building a model that assists me in my own work as a CEO. The question is no longer only, “How can AI help me write faster?” It is, “How can I transfer enough context, values and decision logic into a system that extends how I lead?”</p>
+
+
+
+<p class="wp-block-paragraph">It is like building another person who never had a childhood—but who can learn from the documents, decisions and standards that shaped you.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>AI will change tasks before it removes entire jobs</strong></p>
+
+
+
+<p class="wp-block-paragraph">The phrase “AI will take your job” is powerful, but it is not precise enough.</p>
+
+
+
+<p class="wp-block-paragraph">Most jobs are collections of tasks. A finance employee may reconcile accounts, investigate anomalies, explain performance, exercise judgment and communicate with management. A marketer may research customers, write copy, plan campaigns, analyse results and manage relationships. A chief executive may review numbers, answer messages, allocate capital, recruit leaders, resolve conflicts and decide what the company should become.</p>
+
+
+
+<p class="wp-block-paragraph">AI may automate some of these activities, improve others and remain unreliable at tasks that require physical presence, accountability, deep context or human trust.</p>
+
+
+
+<p class="wp-block-paragraph">The International Labour Organization’s 2025 global analysis examined exposure at the task level and estimated that one in four workers is in an occupation with some exposure to generative AI. Only 3.3 per cent of global employment fell into the highest exposure category, and the ILO concluded that transformation of jobs is more likely than complete replacement because most occupations still contain tasks requiring human input.</p>
+
+
+
+<p class="wp-block-paragraph">Anthropic’s early Economic Index found a similar pattern in actual AI usage: more activity involved augmentation than full automation, and AI was spread across portions of occupations rather than replacing most jobs completely.</p>
+
+
+
+<p class="wp-block-paragraph">The immediate threat is therefore not always that your job title disappears. It is that the number of people required to produce the same output falls, the standard for acceptable output rises and the employer becomes less willing to pay a human merely to complete the routine portion.</p>
+
+
+
+<p class="wp-block-paragraph">One capable person using AI may do work that previously required several average performers.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Average work is work without a defensible difference</strong></p>
+
+
+
+<p class="wp-block-paragraph">Average work is not simply work performed by an average person. Excellent people can produce average work when they stop learning, use outdated methods or deliver the minimum expected standard.</p>
+
+
+
+<p class="wp-block-paragraph">Average work usually has several characteristics:</p>
+
+
+
+<ul class="wp-block-list">
+<li>the process is repetitive and largely rules-based;</li>
+
+
+
+<li>the inputs and desired outputs can be described clearly;</li>
+
+
+
+<li>the work depends more on formatting and recall than judgment;</li>
+
+
+
+<li>quality is “good enough” but not distinctive;</li>
+
+
+
+<li>mistakes can be found through standard checks;</li>
+
+
+
+<li>the worker adds little context beyond what is already in the documents; and</li>
+
+
+
+<li>the output looks similar regardless of who produced it.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">Think about a generic first draft of a report, routine meeting notes, basic customer responses, standard research summaries, simple data cleaning, repetitive coding, templated designs or the mechanical movement of information between systems.</p>
+
+
+
+<p class="wp-block-paragraph">These tasks do not become worthless; they become cheaper. When the cost of producing something falls, the market does not continue paying the old price merely because a human prefers the former process. Value moves towards the harder parts: defining the right problem, supplying trusted context, identifying exceptions, verifying the output, making the decision and accepting responsibility for the consequences.</p>
+
+
+
+<p class="wp-block-paragraph">The danger is not repetition by itself. Every profession contains necessary repetition. The danger is building an entire career around repetition while the cost of automating it approaches zero.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Being uninspired is now an economic warning</strong></p>
+
+
+
+<p class="wp-block-paragraph">If your work has become monotonous and you are no longer inspired by it, pay attention.</p>
+
+
+
+<p class="wp-block-paragraph">Boredom does not prove that AI can automate the job. Some repetitive physical and relational work remains difficult for machines. But boredom can reveal that you have stopped adding judgment, creativity or learning to the process.</p>
+
+
+
+<p class="wp-block-paragraph">Ask yourself:</p>
+
+
+
+<ul class="wp-block-list">
+<li>Which parts of my work repeat every day?</li>
+
+
+
+<li>Which decisions follow rules that can be documented?</li>
+
+
+
+<li>Which outputs could another competent person reproduce from the same information?</li>
+
+
+
+<li>Which tasks would I gladly delegate if a reliable assistant existed?</li>
+
+
+
+<li>What do people trust me to do that cannot be captured in a template?</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">The first group is where AI adoption should begin. The final question is where your human advantage may live.</p>
+
+
+
+<p class="wp-block-paragraph">Do not wait for management to announce an automation programme. Begin learning how to redesign your own work. Use AI to remove the parts that consume time without requiring your best judgment. Then use the recovered capacity to solve harder problems.</p>
+
+
+
+<p class="wp-block-paragraph">The person most likely to survive automation is not always the person who protects the old task most aggressively. It is often the person who automates it first and takes responsibility for the more valuable system around it.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Traditional tools are becoming an invisible tax</strong></p>
+
+
+
+<p class="wp-block-paragraph">Many companies still operate through a collection of manual steps that exist only because they have always existed.</p>
+
+
+
+<p class="wp-block-paragraph">An employee downloads a spreadsheet, changes it, sends it through email and waits for another person to re-upload it. A manager copies information from one application into another. A team member prepares the same report every Friday by gathering numbers that already exist across several systems.</p>
+
+
+
+<p class="wp-block-paragraph">These workflows contain an invisible tax: time, errors, delayed decisions and the cost of people performing coordination that software should handle.</p>
+
+
+
+<p class="wp-block-paragraph">The arrival of AI agents changes the question from “Which tool helps me complete this task?” to “Why must a person complete these steps at all?”</p>
+
+
+
+<p class="wp-block-paragraph">An agent can potentially observe an event, retrieve information, apply rules, prepare an action, seek approval where required, execute through connected systems and record what it did. This is more consequential than adding a chatbot to an existing workflow. It redesigns the workflow.</p>
+
+
+
+<p class="wp-block-paragraph">For African companies, the opportunity is enormous because many business processes are still manual or fragmented. Payroll, compliance, procurement, customer support, logistics, credit assessment and reconciliation contain thousands of recurring activities. At the same time, AI deployment must account for local realities: inconsistent data, multiple languages, unreliable connectivity, regulatory differences and processes that were never documented clearly.</p>
+
+
+
+<p class="wp-block-paragraph">We should not merely import tools designed around another market’s assumptions. We should build systems that understand how work actually happens here.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>The future employee manages intelligence</strong></p>
+
+
+
+<p class="wp-block-paragraph">As AI improves, professional value will move away from producing the first acceptable output and towards managing an intelligent production system.</p>
+
+
+
+<p class="wp-block-paragraph">That work includes:</p>
+
+
+
+<ul class="wp-block-list">
+<li>defining the objective;</li>
+
+
+
+<li>providing relevant context;</li>
+
+
+
+<li>choosing the appropriate model or agent;</li>
+
+
+
+<li>restricting access and authority;</li>
+
+
+
+<li>evaluating the output;</li>
+
+
+
+<li>detecting missing information and hallucinations;</li>
+
+
+
+<li>resolving exceptions;</li>
+
+
+
+<li>protecting confidential data;</li>
+
+
+
+<li>documenting decisions; and</li>
+
+
+
+<li>accepting accountability.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">This is why “prompt engineering” alone is not a durable career plan. Prompts will become easier, interfaces will improve and systems will infer more context automatically. The lasting advantage is understanding a domain well enough to tell whether the machine’s answer is useful, safe and true.</p>
+
+
+
+<p class="wp-block-paragraph">An accountant who uses AI without understanding accounting can produce errors faster. A lawyer who cannot evaluate legal reasoning cannot delegate safely to a model. A marketer without customer insight will generate more content but not necessarily more demand.</p>
+
+
+
+<p class="wp-block-paragraph">AI reduces the value of mechanical production while increasing the value of taste and verification.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>AI will also take part of the founder’s job</strong></p>
+
+
+
+<p class="wp-block-paragraph">Founders should not speak about AI as though disruption belongs only to employees.</p>
+
+
+
+<p class="wp-block-paragraph">Much of a CEO’s day consists of information work. We read updates, respond to messages, review proposals, prepare meetings, interpret financial reports, follow up on commitments and communicate priorities. An AI system with appropriate access and context can already assist with many of these tasks.</p>
+
+
+
+<p class="wp-block-paragraph">The more interesting possibility is a CEO agent that develops a working model of the company and the founder.</p>
+
+
+
+<p class="wp-block-paragraph">Such an agent could understand:</p>
+
+
+
+<ul class="wp-block-list">
+<li>the company’s mission and strategic objectives;</li>
+
+
+
+<li>the founder’s values and non-negotiable principles;</li>
+
+
+
+<li>how the founder evaluates opportunities;</li>
+
+
+
+<li>the company’s products, customers and economics;</li>
+
+
+
+<li>how the founder communicates with different people;</li>
+
+
+
+<li>which metrics require attention;</li>
+
+
+
+<li>what decisions have been made and why;</li>
+
+
+
+<li>which commitments are outstanding; and</li>
+
+
+
+<li>where approval must remain human.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">It could prepare daily priorities, challenge inconsistencies, draft responses in the founder’s tone, identify risks across reports, simulate alternative decisions and coordinate specialised agents in finance, sales, product, customer success and operations.</p>
+
+
+
+<p class="wp-block-paragraph">This is more than a digital assistant. It is an institutional extension of the founder’s judgment. But it is not literally the founder.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>An agent can recommend; a human must remain accountable</strong></p>
+
+
+
+<p class="wp-block-paragraph">Calling an AI system a “CEO” can conceal an important legal and moral distinction.</p>
+
+
+
+<p class="wp-block-paragraph">A human chief executive has duties. The person can be questioned, removed, sued or held responsible for misconduct. They understand relationships and consequences in a way that cannot be reduced entirely to stored instructions. They also operate within boards, laws, employment obligations and social expectations.</p>
+
+
+
+<p class="wp-block-paragraph">An AI agent cannot become the place where responsibility disappears. If the system rejects a candidate unfairly, transfers money incorrectly, exposes confidential information or gives unsafe instructions, the company cannot answer, “The agent decided.” A human authorised the system, selected its access, accepted its controls and benefited from its speed.</p>
+
+
+
+<p class="wp-block-paragraph">The correct design is not unlimited autonomy; it is graduated autonomy. Low-risk, reversible tasks may be automated. Medium-risk actions may require review. High-risk decisions involving people, money, safety, legal obligations or significant strategic commitments should require explicit human approval and, where appropriate, more than one approver. AI should extend responsibility, not dissolve it.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Build the guardrails before granting authority</strong></p>
+
+
+
+<p class="wp-block-paragraph">As agents become more capable, companies must distinguish intelligence from permission. A model may be capable of drafting a payment instruction. That does not mean it should be permitted to release funds. It may be capable of recommending termination. That does not mean it should make the final employment decision. It may be capable of responding to customers, but sensitive complaints may require escalation.</p>
+
+
+
+<p class="wp-block-paragraph">Before deploying an agent, define:</p>
+
+
+
+<ol class="wp-block-list">
+<li><strong>Purpose:</strong> What exact outcome is the system authorised to pursue?</li>
+
+
+
+<li><strong>Data:</strong> Which information may it access, retain or disclose?</li>
+
+
+
+<li><strong>Actions:</strong> What may it do directly, and what may it only recommend?</li>
+
+
+
+<li><strong>Limits:</strong> Which financial, legal or operational thresholds constrain it?</li>
+
+
+
+<li><strong>Approval:</strong> Who must authorise high-impact actions?</li>
+
+
+
+<li><strong>Evidence:</strong> What sources must support its conclusions?</li>
+
+
+
+<li><strong>Audit:</strong> How will instructions, outputs and actions be recorded?</li>
+
+
+
+<li><strong>Escalation:</strong> When must the system stop and ask a person?</li>
+
+
+
+<li><strong>Testing:</strong> How will failures, bias and adversarial behaviour be evaluated?</li>
+
+
+
+<li><strong>Shutdown:</strong> How can access be withdrawn immediately?</li>
+</ol>
+
+
+
+<p class="wp-block-paragraph">Guardrails are not a rejection of innovation. They are what allow serious companies to adopt AI without turning every efficiency into a new category of risk.</p>
+
+
+
+<p class="wp-block-paragraph">At a societal level, the same principle applies. Governments and international institutions must address safety, warfare, surveillance, discrimination, labour displacement and the concentration of powerful systems. The capability race cannot be the only organising principle. Human welfare has to remain the objective.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Do not teach an agent your tone without teaching it your values</strong></p>
+
+
+
+<p class="wp-block-paragraph">I am interested in building an agent that can respond as I would: how I write emails, how I communicate with my team and what I expect the organisation to achieve.</p>
+
+
+
+<p class="wp-block-paragraph">Tone is the easy part. A model can learn that you prefer concise updates, direct feedback or a particular style of language. The harder and more important part is teaching the system why you make decisions.</p>
+
+
+
+<p class="wp-block-paragraph">What do you protect when growth and trust conflict? How do you treat a struggling employee? What financial risks will you refuse even when the upside is attractive? What promises must never be broken? What customer information should never be exposed? What does fairness mean in your company?</p>
+
+
+
+<p class="wp-block-paragraph">Values must be translated into operating rules, examples and boundaries. The agent should see previous decisions, including difficult ones, and the reasoning behind them. It should also be allowed to say that it lacks enough context rather than imitate certainty.</p>
+
+
+
+<p class="wp-block-paragraph">If you give AI your voice without your values, you may create a convincing version of yourself that makes decisions you would never approve.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>The company needs a context layer</strong></p>
+
+
+
+<p class="wp-block-paragraph">An intelligent model is only as useful as the context it can access and the quality of the systems around it.</p>
+
+
+
+<p class="wp-block-paragraph">Many companies want an AI agent before they have clean data, documented processes or reliable permissions. Important knowledge remains inside employees’ heads. Customer information is duplicated across systems. Metrics have different definitions. Policies are obsolete; nobody knows which document is authoritative. AI can make this confusion faster.</p>
+
+
+
+<p class="wp-block-paragraph">Before building powerful agents, companies should organise the context layer:</p>
+
+
+
+<ul class="wp-block-list">
+<li>define important terms and metrics;</li>
+
+
+
+<li>identify authoritative data sources;</li>
+
+
+
+<li>document core workflows and decision rights;</li>
+
+
+
+<li>classify sensitive information;</li>
+
+
+
+<li>record the reasons behind major decisions;</li>
+
+
+
+<li>improve identity and access controls;</li>
+
+
+
+<li>create reliable integrations between systems; and</li>
+
+
+
+<li>establish evaluation datasets for important use cases.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">This work may feel less exciting than launching an agent. It is also what separates a demonstration from a dependable operating system.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Average companies will copy tools; exceptional companies will redesign work</strong></p>
+
+
+
+<p class="wp-block-paragraph">The first stage of AI adoption is usually substitution. People use a model to draft the same email, produce the same presentation or complete the same analysis a little faster.</p>
+
+
+
+<p class="wp-block-paragraph">The greater opportunity is redesign. If an agent can prepare the weekly report, do we still need the same reporting meeting? If it can monitor every customer interaction, can it identify churn risk before a quarterly review? If it can reconcile transactions continuously, should finance still wait until month-end to discover a problem? If it can prepare individualised onboarding, can the company serve customers previously considered too small?</p>
+
+
+
+<p class="wp-block-paragraph">The advantage does not come from adding AI to every old process. It comes from asking which process would exist if intelligent systems had been available when the company was designed.</p>
+
+
+
+<p class="wp-block-paragraph">This is where founders must lead. AI strategy cannot be delegated entirely to the technology team because the most important questions concern the business model, organisation, customer experience and allocation of human responsibility.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>The new standard is human judgment multiplied by machines</strong></p>
+
+
+
+<p class="wp-block-paragraph">The International Monetary Fund has estimated that almost 40 per cent of global employment is exposed to AI, with lower immediate exposure in emerging markets and low-income countries than in advanced economies. That may give parts of Africa more time, but it also creates a danger. Countries with weaker digital infrastructure and fewer AI skills may experience less immediate disruption while missing a large share of the productivity gains.</p>
+
+
+
+<p class="wp-block-paragraph">Waiting is not protection. African companies should train employees to use AI responsibly, digitise processes, improve data quality and build local products. Educational institutions should teach students how to investigate, verify, reason and create with these systems—not merely how to reproduce information that a model can retrieve more quickly.</p>
+
+
+
+<p class="wp-block-paragraph">The World Economic Forum’s <em>Future of Jobs Report 2025</em>, based on more than 1,000 employers representing over 14 million workers, places technological change among the forces expected to reshape labour markets through 2030. Whatever one thinks of individual forecasts, employers are already reorganising around the expectation that skills and work will change.</p>
+
+
+
+<p class="wp-block-paragraph">The safest professional identity is no longer “I perform this routine.” It is “I understand this problem deeply, I can use the best available intelligence to solve it, and I will take responsibility for the result.”</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Move above the average</strong></p>
+
+
+
+<p class="wp-block-paragraph">If your work is repetitive, begin by mapping it. Automate one task. Learn how the system fails. Improve your instructions. Verify the output. Protect confidential information. Measure the time saved and the quality achieved. Then move to a more consequential workflow.</p>
+
+
+
+<p class="wp-block-paragraph">Do not merely produce more average work because AI makes production cheaper. Use it to increase the standard.</p>
+
+
+
+<p class="wp-block-paragraph">Ask better questions. Develop domain expertise. Learn to make trade-offs. Build trust. Improve your taste. Become excellent at noticing what is missing. Take responsibility for decisions a machine can recommend but cannot morally own.</p>
+
+
+
+<p class="wp-block-paragraph">Founders should do the same at the company level. Build agents, but build controls. Encode context, not only tone. Redesign workflows, not only documents. Preserve human approval where consequences are serious.</p>
+
+
+
+<p class="wp-block-paragraph">AI will not remove the need for humans. It will remove much of the economic protection previously enjoyed by work that was merely adequate.</p>
+
+
+
+<p class="wp-block-paragraph">Average is becoming automated. The opportunity is to become the person—or build the company—that knows what the machines should do, why they should do it and when they must stop. &#8212;</p>
+
+
+
+<p class="wp-block-paragraph"><strong>References and further reading</strong></p>
+
+
+
+<ul class="wp-block-list">
+<li>International Labour Organization, <a href="https://www.ilo.org/publications/generative-ai-and-jobs-refined-global-index-occupational-exposure">Generative AI and Jobs: A Refined Global Index of Occupational Exposure</a>.</li>
+
+
+
+<li>International Monetary Fund, <a href="https://www.imf.org/en/Blogs/Articles/2024/01/14/ai-will-transform-the-global-economy-lets-make-sure-it-benefits-humanity">AI Will Transform the Global Economy</a>.</li>
+
+
+
+<li>World Economic Forum, <a href="https://www.weforum.org/publications/the-future-of-jobs-report-2025/">The Future of Jobs Report 2025</a>.</li>
+
+
+
+<li>Anthropic, <a href="https://www.anthropic.com/research/the-anthropic-economic-index">The Anthropic Economic Index</a>.</li>
+
+
+
+<li>Ethan Mollick, <em>Co-Intelligence: Living and Working with AI</em>.</li>
+
+
+
+<li>Ajay Agrawal, Joshua Gans and Avi Goldfarb, <em>Power and Prediction: The Disruptive Economics of Artificial Intelligence</em>.</li>
+</ul>
+<div id="jp-post-flair" class="sharedaddy sd-like-enabled"><div class="sharedaddy sd-sharing-enabled"><div class="robots-nocontent sd-block sd-social sd-social-icon-text sd-sharing"><h3 class="sd-title">Share this:</h3><div class="sd-content"><ul><li class="share-twitter"><a rel="nofollow noopener noreferrer"
+				data-shared="sharing-twitter-1010"
+				class="share-twitter sd-button share-icon"
+				href="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/?share=twitter"
+				target="_blank"
+				aria-labelledby="sharing-twitter-1010"
+				>
+				<span id="sharing-twitter-1010" hidden>Share on X (Opens in new window)</span>
+				<span>X</span>
+			</a></li><li class="share-facebook"><a rel="nofollow noopener noreferrer"
+				data-shared="sharing-facebook-1010"
+				class="share-facebook sd-button share-icon"
+				href="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/?share=facebook"
+				target="_blank"
+				aria-labelledby="sharing-facebook-1010"
+				>
+				<span id="sharing-facebook-1010" hidden>Share on Facebook (Opens in new window)</span>
+				<span>Facebook</span>
+			</a></li><li class="share-end"></li></ul></div></div></div><div class='sharedaddy sd-block sd-like jetpack-likes-widget-wrapper jetpack-likes-widget-unloaded' id='like-post-wrapper-126290534-1010-6ae008e7ace63' data-src='//widgets.wp.com/likes/index.html?ver=20261027#blog_id=126290534&amp;post_id=1010&amp;origin=asheradeniyi.wordpress.com&amp;obj_id=126290534-1010-6ae008e7ace63&amp;domain=asheradeniyi.com' data-name='like-post-frame-126290534-1010-6ae008e7ace63' data-title='Like or Reblog'><div class='likes-widget-placeholder post-likes-widget-placeholder' style='height: 55px;'><span class='button'><span>Like</span></span> <span class='loading'>Loading&#8230;</span></div><span class='sd-text-color'></span><a class='sd-link-color'></a></div></div></div><div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="margin-top:48px;margin-bottom:48px;padding-top:5px;padding-bottom:5px">
+	
+	<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide" style="margin-bottom:36px"/>
+	
+
+	
+	<h3 class="wp-block-heading has-text-align-center" style="margin-top:4px;margin-bottom:10px">Discover more from Asher&#039;s Blog</h3>
+	
+
+	
+	<p class="has-text-align-center wp-block-paragraph" style="margin-top:4px;margin-bottom:0px;font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.147), 15px);">Subscribe to get the latest posts sent to your email.</p>
+	
+
+	
+	<div class="wp-block-group has-global-padding is-layout-constrained wp-container-core-group-is-layout-b821fca1 wp-block-group-is-layout-constrained">	<div class="wp-block-jetpack-subscriptions__supports-newline wp-block-jetpack-subscriptions">
+		<div class="wp-block-jetpack-subscriptions__container is-not-subscriber">
+							<form
+					action="https://wordpress.com/email-subscriptions"
+					method="post"
+					accept-charset="utf-8"
+					data-blog="126290534"
+					data-post_access_level="everybody"
+					data-subscriber_email=""
+					id="subscribe-blog"
+				>
+					<div class="wp-block-jetpack-subscriptions__form-elements">
+												<p id="subscribe-email">
+							<label
+								id="subscribe-field-label"
+								for="subscribe-field"
+								class="screen-reader-text"
+							>
+								Type your email…							</label>
+							<input
+									required="required"
+									type="email"
+									name="email"
+									autocomplete="email"
+									class="no-border-radius "
+									style="font-size: 16px;padding: 15px 23px 15px 23px;border-radius: 0px;border-width: 1px;"
+									placeholder="Type your email…"
+									value=""
+									id="subscribe-field"
+									title="Please fill in this field."
+								/>						</p>
+												<p id="subscribe-submit"
+													>
+							<input type="hidden" name="action" value="subscribe"/>
+							<input type="hidden" name="blog_id" value="126290534"/>
+							<input type="hidden" name="source" value="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/"/>
+							<input type="hidden" name="sub-type" value="subscribe-block"/>
+							<input type="hidden" name="app_source" value="subscribe-block-post-end"/>
+							<input type="hidden" name="redirect_fragment" value="subscribe-blog"/>
+							<input type="hidden" name="lang" value="en"/>
+							<input type="hidden" id="_wpnonce" name="_wpnonce" value="6c0604138b" /><input type="hidden" name="_wp_http_referer" value="/2026/09/18/ai-will-erase-average-work/" /><input type="hidden" name="post_id" value="1010"/>							<button type="submit"
+																	class="wp-block-button__link no-border-radius"
+																									style="font-size: 16px;padding: 15px 23px 15px 23px;margin: 0; margin-left: 10px;border-radius: 0px;border-width: 1px;"
+																name="jetpack_subscriptions_widget"
+							>
+								Subscribe							</button>
+						</p>
+					</div>
+				</form>
+								</div>
+	</div>
+		</div>
+	
+</div></div>
+
+
+
+<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:33.33%"><div class="wp-block-template-part">
+<p class="wp-block-paragraph" style="padding-bottom:var(--wp--preset--spacing--50);font-size:clamp(0.929rem, 0.929rem + ((1vw - 0.2rem) * 1.108), 1.4rem);">More Posts</p>
+
+
+
+<div class="wp-block-query is-layout-flow wp-block-query-is-layout-flow"><ul class="wp-block-post-template is-layout-flow wp-block-post-template-is-layout-flow"><li class="wp-block-post post-1269 post type-post status-publish format-standard hentry category-business-start-up">
+
+<div class="wp-block-columns are-vertically-aligned-center is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-e6f27d69 wp-block-columns-is-layout-flex" style="border-top-style:none;border-top-width:0px;border-right-style:none;border-right-width:0px;border-bottom-color:var(--wp--preset--color--primary);border-bottom-width:2px;border-left-style:none;border-left-width:0px;padding-bottom:var(--wp--preset--spacing--30)">
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:20%"><div style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-date"><time datetime="2026-10-09T11:52:31+01:00">09.10</time></div></div>
+
+
+
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:90%"><h2 style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-title"><a href="https://asheradeniyi.com/2026/10/09/delay-is-part-of-the-decision/" target="_self" >Delay is Part of the&nbsp;Decision</a></h2></div>
+</div>
+
+</li><li class="wp-block-post post-1266 post type-post status-publish format-standard hentry category-business-start-up">
+
+<div class="wp-block-columns are-vertically-aligned-center is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-e6f27d69 wp-block-columns-is-layout-flex" style="border-top-style:none;border-top-width:0px;border-right-style:none;border-right-width:0px;border-bottom-color:var(--wp--preset--color--primary);border-bottom-width:2px;border-left-style:none;border-left-width:0px;padding-bottom:var(--wp--preset--spacing--30)">
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:20%"><div style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-date"><time datetime="2026-10-08T11:49:25+01:00">08.10</time></div></div>
+
+
+
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:90%"><h2 style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-title"><a href="https://asheradeniyi.com/2026/10/08/every-exception-becomes-a-policy/" target="_self" >Every Exception Becomes a&nbsp;Policy</a></h2></div>
+</div>
+
+</li><li class="wp-block-post post-1263 post type-post status-publish format-standard hentry category-business-start-up category-my-classics category-nations">
+
+<div class="wp-block-columns are-vertically-aligned-center is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-e6f27d69 wp-block-columns-is-layout-flex" style="border-top-style:none;border-top-width:0px;border-right-style:none;border-right-width:0px;border-bottom-color:var(--wp--preset--color--primary);border-bottom-width:2px;border-left-style:none;border-left-width:0px;padding-bottom:var(--wp--preset--spacing--30)">
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:20%"><div style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-date"><time datetime="2026-10-07T11:42:01+01:00">07.10</time></div></div>
+
+
+
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:90%"><h2 style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-title"><a href="https://asheradeniyi.com/2026/10/07/inheritance-tax-can-cost-a-country-more-than-it-collects/" target="_self" >Inheritance Tax Can Cost a Country More Than it&nbsp;Collects</a></h2></div>
+</div>
+
+</li><li class="wp-block-post post-1260 post type-post status-publish format-standard hentry category-business-start-up category-faith-christian-life category-leadership category-my-classics category-psychology-mindset">
+
+<div class="wp-block-columns are-vertically-aligned-center is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-e6f27d69 wp-block-columns-is-layout-flex" style="border-top-style:none;border-top-width:0px;border-right-style:none;border-right-width:0px;border-bottom-color:var(--wp--preset--color--primary);border-bottom-width:2px;border-left-style:none;border-left-width:0px;padding-bottom:var(--wp--preset--spacing--30)">
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:20%"><div style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-date"><time datetime="2026-10-06T11:32:42+01:00">06.10</time></div></div>
+
+
+
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:90%"><h2 style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-title"><a href="https://asheradeniyi.com/2026/10/06/being-a-founder-is-not-a-status-symbol/" target="_self" >Being a Founder is not a Status&nbsp;Symbol</a></h2></div>
+</div>
+
+</li><li class="wp-block-post post-1257 post type-post status-publish format-standard hentry category-business-start-up category-leadership">
+
+<div class="wp-block-columns are-vertically-aligned-center is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-e6f27d69 wp-block-columns-is-layout-flex" style="border-top-style:none;border-top-width:0px;border-right-style:none;border-right-width:0px;border-bottom-color:var(--wp--preset--color--primary);border-bottom-width:2px;border-left-style:none;border-left-width:0px;padding-bottom:var(--wp--preset--spacing--30)">
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:20%"><div style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-date"><time datetime="2026-10-05T11:29:41+01:00">05.10</time></div></div>
+
+
+
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:90%"><h2 style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-title"><a href="https://asheradeniyi.com/2026/10/05/companies-grow-until-communication-breaks/" target="_self" >Companies Grow Until Communication&nbsp;Breaks</a></h2></div>
+</div>
+
+</li><li class="wp-block-post post-1246 post type-post status-publish format-standard hentry category-faith-christian-life category-my-classics category-psychology-mindset">
+
+<div class="wp-block-columns are-vertically-aligned-center is-not-stacked-on-mobile is-layout-flex wp-container-core-columns-is-layout-e6f27d69 wp-block-columns-is-layout-flex" style="border-top-style:none;border-top-width:0px;border-right-style:none;border-right-width:0px;border-bottom-color:var(--wp--preset--color--primary);border-bottom-width:2px;border-left-style:none;border-left-width:0px;padding-bottom:var(--wp--preset--spacing--30)">
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:20%"><div style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-date"><time datetime="2026-10-02T21:23:57+01:00">02.10</time></div></div>
+
+
+
+<div class="wp-block-column is-vertically-aligned-center is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:90%"><h2 style="font-size:clamp(0.875rem, 0.875rem + ((1vw - 0.2rem) * 0.294), 1rem)" class="wp-block-post-title"><a href="https://asheradeniyi.com/2026/10/02/before-offence-becomes-a-prison/" target="_self" >Before Offence Becomes a&nbsp;Prison</a></h2></div>
+</div>
+
+</li></ul>
+
+</div>
+</div></div>
+</div>
+
+
+
+<div class="wp-block-columns alignwide is-layout-flex wp-container-core-columns-is-layout-f93a57d3 wp-block-columns-is-layout-flex">
+<div class="wp-block-column is-layout-flow wp-container-core-column-is-layout-5dafc681 wp-block-column-is-layout-flow" style="flex-basis:70%">
+<div class="wp-block-group has-global-padding is-layout-constrained wp-block-group-is-layout-constrained">
+<div style="height:4rem" aria-hidden="true" class="wp-block-spacer"></div>
+
+
+
+<div class="wp-block-comments alignfull wp-block-comments-query-loop">
+
+
+
+
+
+	<div id="respond" class="comment-respond wp-block-post-comments-form">
+		<h3 id="reply-title" class="comment-reply-title">Leave a Reply <small><a rel="nofollow" id="cancel-comment-reply-link" href="/2026/09/18/ai-will-erase-average-work/#respond" style="display:none;">Cancel reply</a></small></h3><form action="https://asheradeniyi.com/wp-comments-post.php" method="post" id="commentform" class="comment-form"><div class="jetpack-comments" data-jetpack-comments="{&quot;postId&quot;:1010,&quot;loginUrl&quot;:&quot;https://asheradeniyi.wordpress.com/wp-login.php?redirect_to=https%3A%2F%2Fasheradeniyi.com%2F2026%2F09%2F18%2Fai-will-erase-average-work%2F&quot;,&quot;logoutUrl&quot;:&quot;&quot;,&quot;submit&quot;:{&quot;id&quot;:&quot;submit&quot;,&quot;name&quot;:&quot;submit&quot;,&quot;class&quot;:&quot;wp-block-button__link wp-element-button&quot;,&quot;wrapClass&quot;:&quot;wp-block-button&quot;,&quot;label&quot;:&quot;Comment&quot;},&quot;subscriptions&quot;:[{&quot;name&quot;:&quot;subscribe&quot;,&quot;label&quot;:&quot;Notify me of new comments by email.&quot;,&quot;checked&quot;:false},{&quot;name&quot;:&quot;subscribe_blog&quot;,&quot;label&quot;:&quot;Subscribe to keep up with Asher\u0026#039;s Blog.&quot;,&quot;checked&quot;:false}]}"><p class="comment-form-comment"><label for="comment">Comment</label><textarea id="comment" name="comment" rows="4" required></textarea></p><p class="comment-form-author"><label for="author">Name</label><input id="author" name="author" type="text" value="" required /></p><p class="comment-form-email"><label for="email">Email</label><input id="email" name="email" type="email" value="" required /></p><p class="comment-form-url"><label for="url">Website</label><input id="url" name="url" type="text" value="" maxlength="200" /></p><p class="form-submit wp-block-button"><input name="submit" type="submit" id="submit" class="wp-block-button__link wp-element-button" value="Comment" /> </p></div><noscript><style>.jetpack-comments{display:none!important}</style><p>Turn on JavaScript to leave a comment.</p></noscript><input type='hidden' name='comment_post_ID' value='1010' id='comment_post_ID' />
+<input type='hidden' name='comment_parent' id='comment_parent' value='0' />
+<p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="cf03bf7a2a" /></p><p style="display: none !important;" class="akismet-fields-container" data-prefix="ak_"><label>&#916;<textarea name="ak_hp_textarea" cols="45" rows="8" maxlength="100"></textarea></label><input type="hidden" id="ak_js_1" name="ak_js" value="175"/><script>
+document.getElementById( "ak_js_1" ).setAttribute( "value", ( new Date() ).getTime() );
+</script>
+</p></form>	</div><!-- #respond -->
+	</div>
+</div>
+</div>
+
+
+
+<div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow" style="flex-basis:33.33%"></div>
+</div>
+</div>
+
+
+<footer class="wp-block-template-part">
+<div style="height:var(--wp--preset--spacing--80)" aria-hidden="true" class="wp-block-spacer"></div>
+
+
+
+<div class="wp-block-group has-global-padding is-layout-constrained wp-block-group-is-layout-constrained" style="padding-bottom:var(--wp--preset--spacing--80)">
+<div class="wp-block-group alignwide is-layout-flow wp-container-core-group-is-layout-15ea44a4 wp-block-group-is-layout-flow"><form role="search" method="get" action="https://asheradeniyi.com/" class="wp-block-search__button-outside wp-block-search__icon-button wp-block-search" ><label class="wp-block-search__label screen-reader-text" for="wp-block-search__input-1" >Search</label><div class="wp-block-search__inside-wrapper"  style="width: 75%"><input class="wp-block-search__input" id="wp-block-search__input-1" placeholder="Search..." value="" type="search" name="s" required  style="border-width: 0px;border-style: none;border-radius: 4px"/><button aria-label="Search" class="wp-block-search__button has-icon wp-element-button" type="submit"  style="border-width: 0px;border-style: none;border-radius: 4px"><svg class="search-icon" viewBox="0 0 24 24" width="24" height="24">
+					<path d="M13 5c-3.3 0-6 2.7-6 6 0 1.4.5 2.7 1.3 3.7l-3.8 3.8 1.1 1.1 3.8-3.8c1 .8 2.3 1.3 3.7 1.3 3.3 0 6-2.7 6-6S16.3 5 13 5zm0 10.5c-2.5 0-4.5-2-4.5-4.5s2-4.5 4.5-4.5 4.5 2 4.5 4.5-2 4.5-4.5 4.5z"></path>
+				</svg></button></div></form>
+
+
+<p class="has-text-align-left wp-block-paragraph" style="font-size:0.8rem"><a href="https://wordpress.com/?ref=footer_custom_svg" title="Create a website or blog at WordPress.com" rel="nofollow"><svg style="fill: currentColor; position: relative; top: 1px;" width="14px" height="15px" viewBox="0 0 14 15" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-labelledby="title" role="img">
+				<desc id="title">Create a website or blog at WordPress.com</desc>
+				<path d="M12.5225848,4.97949746 C13.0138466,5.87586309 13.2934037,6.90452431 13.2934037,7.99874074 C13.2934037,10.3205803 12.0351007,12.3476807 10.1640538,13.4385638 L12.0862862,7.88081544 C12.4453251,6.98296834 12.5648813,6.26504621 12.5648813,5.62667922 C12.5648813,5.39497674 12.549622,5.17994084 12.5225848,4.97949746 L12.5225848,4.97949746 Z M7.86730089,5.04801561 C8.24619178,5.02808979 8.58760099,4.98823815 8.58760099,4.98823815 C8.9267139,4.94809022 8.88671369,4.44972248 8.54745263,4.46957423 C8.54745263,4.46957423 7.52803983,4.54957381 6.86996227,4.54957381 C6.25158863,4.54957381 5.21247202,4.46957423 5.21247202,4.46957423 C4.87306282,4.44972248 4.83328483,4.96816418 5.17254589,4.98823815 C5.17254589,4.98823815 5.49358462,5.02808979 5.83269753,5.04801561 L6.81314716,7.73459399 L5.43565839,11.8651647 L3.14394256,5.04801561 C3.52312975,5.02808979 3.86416859,4.98823815 3.86416859,4.98823815 C4.20305928,4.94809022 4.16305906,4.44972248 3.82394616,4.46957423 C3.82394616,4.46957423 2.80475558,4.54957381 2.14660395,4.54957381 C2.02852925,4.54957381 1.88934333,4.54668493 1.74156477,4.54194422 C2.86690406,2.83350881 4.80113651,1.70529256 6.99996296,1.70529256 C8.638342,1.70529256 10.1302017,2.33173369 11.2498373,3.35765419 C11.222726,3.35602457 11.1962815,3.35261718 11.1683554,3.35261718 C10.5501299,3.35261718 10.1114609,3.89113285 10.1114609,4.46957423 C10.1114609,4.98823815 10.4107217,5.42705065 10.7296864,5.94564049 C10.969021,6.36482346 11.248578,6.90326506 11.248578,7.68133501 C11.248578,8.21992476 11.0413918,8.84503256 10.7696866,9.71584277 L10.1417574,11.8132391 L7.86730089,5.04801561 Z M6.99996296,14.2927074 C6.38218192,14.2927074 5.78595654,14.2021153 5.22195356,14.0362644 L7.11048207,8.54925635 L9.04486267,13.8491542 C9.05760348,13.8802652 9.07323319,13.9089317 9.08989995,13.9358945 C8.43574834,14.1661896 7.73285573,14.2927074 6.99996296,14.2927074 L6.99996296,14.2927074 Z M0.706448182,7.99874074 C0.706448182,7.08630113 0.902152921,6.22015756 1.25141403,5.43749503 L4.25357806,13.6627848 C2.15393732,12.6427902 0.706448182,10.4898387 0.706448182,7.99874074 L0.706448182,7.99874074 Z M6.99996296,0.999 C3.14016476,0.999 0,4.13905746 0,7.99874074 C0,11.8585722 3.14016476,14.999 6.99996296,14.999 C10.8596871,14.999 14,11.8585722 14,7.99874074 C14,4.13905746 10.8596871,0.999 6.99996296,0.999 L6.99996296,0.999 Z" id="wordpress-logo-simplified-cmyk" stroke="none" fill=“currentColor” fill-rule="evenodd"></path>
+			</svg></a></p>
+</div>
+</div>
+</footer></div>
+<!-- wpcom_wp_footer -->
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp-*.php","/wp-admin/*","/files/*","/wp-content/*","/wp-content/plugins/*","/wp-content/themes/pub/sten/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+					<div class="jetpack-subscribe-modal">
+						<div class="jetpack-subscribe-modal__modal-content">
+								
+	<div class="wp-block-group has-border-color has-global-padding is-layout-constrained wp-container-core-group-is-layout-21d4bf9d wp-block-group-is-layout-constrained" style="border-color:#dddddd;border-width:1px;margin-top:0;margin-bottom:0;padding-top:32px;padding-right:32px;padding-bottom:32px;padding-left:32px">
+
+	
+		<h2 class="wp-block-heading has-text-align-center" style="margin-top:4px;margin-bottom:10px;font-size:clamp(16.834px, 1.052rem + ((1vw - 3.2px) * 1.348), 26px);font-style:normal;font-weight:600">Discover more from Asher&#039;s Blog</h2>
+		
+
+		
+		<p class="has-text-align-center wp-block-paragraph" style='margin-top:4px;margin-bottom:1em;font-size:clamp(14px, 0.875rem + ((1vw - 3.2px) * 0.147), 15px);'>Subscribe now to keep reading and get access to the full archive.</p>
+		
+
+			<div class="wp-block-jetpack-subscriptions__supports-newline is-style-compact wp-block-jetpack-subscriptions">
+		<div class="wp-block-jetpack-subscriptions__container is-not-subscriber">
+							<form
+					action="https://wordpress.com/email-subscriptions"
+					method="post"
+					accept-charset="utf-8"
+					data-blog="126290534"
+					data-post_access_level="everybody"
+					data-subscriber_email=""
+					id="subscribe-blog-2"
+				>
+					<div class="wp-block-jetpack-subscriptions__form-elements">
+												<p id="subscribe-email">
+							<label
+								id="subscribe-field-2-label"
+								for="subscribe-field-2"
+								class="screen-reader-text"
+							>
+								Type your email…							</label>
+							<input
+									required="required"
+									type="email"
+									name="email"
+									autocomplete="email"
+									
+									style="font-size: 16px;padding: 15px 23px 15px 23px;border-radius: 50px;border-width: 1px;"
+									placeholder="Type your email…"
+									value=""
+									id="subscribe-field-2"
+									title="Please fill in this field."
+								/>						</p>
+												<p id="subscribe-submit"
+													>
+							<input type="hidden" name="action" value="subscribe"/>
+							<input type="hidden" name="blog_id" value="126290534"/>
+							<input type="hidden" name="source" value="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/"/>
+							<input type="hidden" name="sub-type" value="subscribe-block"/>
+							<input type="hidden" name="app_source" value="subscribe-modal"/>
+							<input type="hidden" name="redirect_fragment" value="subscribe-blog-2"/>
+							<input type="hidden" name="lang" value="en"/>
+							<input type="hidden" id="_wpnonce" name="_wpnonce" value="6c0604138b" /><input type="hidden" name="_wp_http_referer" value="/2026/09/18/ai-will-erase-average-work/" /><input type="hidden" name="post_id" value="1010"/>							<button type="submit"
+																	class="wp-block-button__link"
+																									style="font-size: 16px;padding: 15px 23px 15px 23px;margin: 0; margin-left: 10px;border-radius: 50px;border-width: 1px;"
+																name="jetpack_subscriptions_widget"
+							>
+								Subscribe							</button>
+						</p>
+					</div>
+				</form>
+								</div>
+	</div>
+	
+
+		
+		<p class="has-text-align-center jetpack-subscribe-modal__close wp-block-paragraph" style="margin-top:20px;margin-bottom:0;font-size:14px"><a href="#">Continue reading</a></p>
+		
+	</div>
+							</div>
+					</div>
+			<script id="grofiles-cards-js" src="//0.gravatar.com/js/hovercards/hovercards.min.js?ver=202644d1133547e8a1f2801609f51cef12522abe7f6647d869e9fbc974fe356a37e613"></script>
+<script id="wpgroho-js-extra">
+var WPGroHo = {"my_hash":""};
+//# sourceURL=wpgroho-js-extra
+</script>
+<script crossorigin='anonymous' type='text/javascript'  src='/wp-content/mu-plugins/gravatar-hovercards/wpgroho.js?m=1610363240i'></script>
+
+	<script>
+		// Initialize and attach hovercards to all gravatars
+		( function() {
+			function init() {
+				if ( typeof Gravatar === 'undefined' ) {
+					return;
+				}
+
+				if ( typeof Gravatar.init !== 'function' ) {
+					return;
+				}
+
+				Gravatar.profile_cb = function ( hash, id ) {
+					WPGroHo.syncProfileData( hash, id );
+				};
+
+				Gravatar.my_hash = WPGroHo.my_hash;
+				Gravatar.init(
+					'body',
+					'#wp-admin-bar-my-account',
+					{
+						i18n: {
+							'Edit your profile →': 'Edit your profile →',
+							'View profile →': 'View profile →',
+							'Contact': 'Contact',
+							'Send money': 'Send money',
+							'Sorry, we are unable to load this Gravatar profile.': 'Sorry, we are unable to load this Gravatar profile.',
+							'Gravatar not found.': 'Gravatar not found.',
+							'Too Many Requests.': 'Too Many Requests.',
+							'Internal Server Error.': 'Internal Server Error.',
+							'Is this you?': 'Is this you?',
+							'Claim your free profile.': 'Claim your free profile.',
+							'Email': 'Email',
+							'Home Phone': 'Home Phone',
+							'Work Phone': 'Work Phone',
+							'Cell Phone': 'Cell Phone',
+							'Contact Form': 'Contact Form',
+							'Calendar': 'Calendar',
+						},
+					}
+				);
+			}
+
+			if ( document.readyState !== 'loading' ) {
+				init();
+			} else {
+				document.addEventListener( 'DOMContentLoaded', init );
+			}
+		} )();
+	</script>
+
+		<div style="display:none">
+	</div>
+
+	<script type="text/javascript">
+		window.WPCOM_sharing_counts = {"https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/":1010};
+	</script>
+							<div id="actionbar" dir="ltr" style="display: none;"
+				class="actnbr-pub-sten" role="region" aria-label="Site actions">
+			<span class="actnbr-live" aria-live="polite"></span>
+			<ul>
+										<li class="actnbr-btn">
+							<a class="actnbr-action actnbr-actn-comment" href="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/#respond">
+								<svg class="actnbr-icon actnbr-icon-comment" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" fill="currentColor"><path d="M18 4H6c-1.1 0-2 .9-2 2v12.9c0 .6.5 1.1 1.1 1.1.3 0 .5-.1.8-.3L8.5 17H18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm.5 11c0 .3-.2.5-.5.5H7.9l-2.4 2.4V6c0-.3.2-.5.5-.5h12c.3 0 .5.2.5.5v9z"/></svg>								<span>Comment							</span>
+							</a>
+						</li>
+											<li class="actnbr-btn">
+							<a class="actnbr-action actnbr-actn-reblog" href="" role="button">
+								<svg class="actnbr-icon actnbr-icon-reusable-block" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" fill="currentColor"><path d="M7 7.2h8.2L13.5 9l1.1 1.1 3.6-3.6-3.5-4-1.1 1 1.9 2.3H7c-.9 0-1.7.3-2.3.9-1.4 1.5-1.4 4.2-1.4 5.6v.2h1.5v-.3c0-1.1 0-3.5 1-4.5.3-.3.7-.5 1.2-.5zm13.8 4V11h-1.5v.3c0 1.1 0 3.5-1 4.5-.3.3-.7.5-1.3.5H8.8l1.7-1.7-1.1-1.1L5.9 17l3.5 4 1.1-1-1.9-2.3H17c.9 0 1.7-.3 2.3-.9 1.5-1.4 1.5-4.2 1.5-5.6z"/></svg><span>Reblog</span>
+							</a>
+						</li>
+											<li class="actnbr-btn actnbr-hidden">
+										<a class="actnbr-action actnbr-actn-follow " href="" role="button" aria-haspopup="dialog" aria-expanded="false">
+				<svg class="actnbr-icon actnbr-icon-bell" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M17 11.5c0 1.353.17 2.368.976 3 .266.209.602.376 1.024.5v1H5v-1c.422-.124.757-.291 1.024-.5.806-.632.976-1.647.976-3V9c0-2.8 2.2-5 5-5s5 2.2 5 5v2.5ZM15.5 9v2.5c0 .93.066 1.98.515 2.897l.053.103H7.932a4.018 4.018 0 0 0 .053-.103c.449-.917.515-1.967.515-2.897V9c0-1.972 1.528-3.5 3.5-3.5s3.5 1.528 3.5 3.5Zm-5.492 9.008c0-.176.023-.346.065-.508h3.854A1.996 1.996 0 0 1 12 20c-1.1 0-1.992-.892-1.992-1.992Z"/></svg>				<span>Subscribe</span>
+			</a>
+			<a class="actnbr-action actnbr-actn-following  no-display" href="" role="button">
+				<svg class="actnbr-icon actnbr-icon-check" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="fill: none" stroke="currentColor" stroke-width="1.5"><path d="M7 12L10 15L17 8" vector-effect="non-scaling-stroke"/></svg>				<span>Subscribed</span>
+			</a>
+									<div class="actnbr-popover actnbr-panel actnbr-notice" id="follow-bubble" role="dialog" aria-label="Subscribe to Asher&#039;s Blog">
+								<div class="actnbr-follow-bubble">
+								<div class="actnbr-panel__group"><a class="actnbr-menu__item actnbr-sitename" href="https://asheradeniyi.com"><img loading='lazy' alt='' src='https://s-ssl.wordpress.com/i/logo/wpcom-gray-white.png?m=1479929237i' srcset='https://s-ssl.wordpress.com/i/logo/wpcom-gray-white.png 1x' class='avatar avatar-50' height='50' width='50' /><span class="actnbr-menu__label">Asher&#039;s Blog</span></a></div>																	<div class="actnbr-panel__group">
+										<div class="actnbr-message no-display" aria-live="polite"></div>
+										<form method="post" action="https://subscribe.wordpress.com" accept-charset="utf-8" class="no-display">
+																							<div class="actnbr-follow-count">Join 123 other subscribers</div>
+																							<input type="email" name="email" placeholder="Want updates? Enter your email" class="actnbr-email-field" aria-label="Email address" />
+											<input type="hidden" name="action" value="subscribe" />
+											<input type="hidden" name="blog_id" value="126290534" />
+											<input type="hidden" name="source" value="https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/" />
+											<input type="hidden" name="sub-type" value="actionbar-follow" />
+											<input type="hidden" id="_wpnonce" name="_wpnonce" value="6c0604138b" />											<button type="submit" class="actnbr-button">Sign me up</button>
+										</form>
+										<p class="actnbr-login-nudge">
+											Have a WordPress.com account? <a href="https://wordpress.com/log-in?redirect_to=https%3A%2F%2Fr-login.wordpress.com%2Fremote-login.php%3Faction%3Dlink%26back%3Dhttps%253A%252F%252Fasheradeniyi.com%252F2026%252F09%252F18%252Fai-will-erase-average-work%252F">Log in now.</a>										</p>
+									</div>
+																	</div>
+							</div>
+						</li>
+									<li class="actnbr-ellipsis actnbr-hidden">
+					<button type="button" class="actnbr-more-toggle" aria-haspopup="true" aria-expanded="false" aria-label="More options">
+						<svg class="actnbr-icon actnbr-icon-more-horizontal" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" fill="currentColor"><path d="M11 13h2v-2h-2v2zm-6 0h2v-2H5v2zm12-2v2h2v-2h-2z"/></svg>					</button>
+					<div class="actnbr-popover actnbr-menu" role="menu" aria-label="Site options">
+						<div class="actnbr-menu__group" role="group"><a role="menuitem" class="actnbr-menu__item actnbr-sitename" href="https://asheradeniyi.com"><img loading='lazy' alt='' src='https://s-ssl.wordpress.com/i/logo/wpcom-gray-white.png?m=1479929237i' srcset='https://s-ssl.wordpress.com/i/logo/wpcom-gray-white.png 1x' class='avatar avatar-50' height='50' width='50' /><span class="actnbr-menu__label">Asher&#039;s Blog</span></a></div><div class="actnbr-menu__group" role="group"><a role="menuitem" class="actnbr-menu__item actnbr-shortlink" href="https://wp.me/p8xTW6-gi"><span class="actnbr-menu__label actnbr-shortlink__text">Copy shortlink</span><span class="actnbr-menu__icon actnbr-shortlink__icon"><svg class="actnbr-icon actnbr-icon-copy" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M5 4.5h11a.5.5 0 0 1 .5.5v11a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V5a.5.5 0 0 1 .5-.5ZM3 5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5Zm17 3v10.75c0 .69-.56 1.25-1.25 1.25H6v1.5h12.75a2.75 2.75 0 0 0 2.75-2.75V8H20Z"/></svg></span><span class="actnbr-menu__icon actnbr-shortlink__icon-copied"><svg class="actnbr-icon actnbr-icon-check" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="fill: none" stroke="currentColor" stroke-width="1.5"><path d="M7 12L10 15L17 8" vector-effect="non-scaling-stroke"/></svg></span></a><a role="menuitem" class="actnbr-menu__item actnbr-reader" href="https://wordpress.com/reader/blogs/126290534/posts/1010"><span class="actnbr-menu__label">View post in Reader</span></a></div><div class="actnbr-menu__group" role="group"><a role="menuitem" class="actnbr-menu__item actnbr-subs" href="https://subscribe.wordpress.com/"><span class="actnbr-menu__label">Manage subscriptions</span></a><a role="menuitem" class="actnbr-menu__item actnbr-signup" href="https://wordpress.com/start/"><span class="actnbr-menu__label">Sign up</span></a><a role="menuitem" class="actnbr-menu__item actnbr-login" href="https://wordpress.com/log-in?redirect_to=https%3A%2F%2Fr-login.wordpress.com%2Fremote-login.php%3Faction%3Dlink%26back%3Dhttps%253A%252F%252Fasheradeniyi.com%252F2026%252F09%252F18%252Fai-will-erase-average-work%252F"><span class="actnbr-menu__label">Log in</span></a></div><div class="actnbr-menu__group" role="group"><a role="menuitem" class="actnbr-menu__item flb-report" href="https://wordpress.com/abuse/?report_url=https://asheradeniyi.com/2026/09/18/ai-will-erase-average-work/" target="_blank" rel="noopener noreferrer"><span class="actnbr-menu__label">Report this content</span><span class="actnbr-menu__icon"><svg class="actnbr-icon actnbr-icon-external" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" fill="currentColor"><path d="M19.5 4.5h-7V6h4.44l-5.97 5.97 1.06 1.06L18 7.06v4.44h1.5v-7Zm-13 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3H17v3a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h3V5.5h-3Z"/></svg></span></a></div><div class="actnbr-menu__group" role="group"><a role="menuitem" class="actnbr-menu__item actnbr-fold" href=""><span class="actnbr-menu__label">Collapse this bar</span></a></div>					</div>
+				</li>
+			</ul>
+		</div>
+		<script>
+window.addEventListener( "DOMContentLoaded", function () {
+				var link = document.createElement( "link" );
+				link.href = "\/wp-content\/mu-plugins\/jetpack-plugin\/moon\/jetpack_vendor\/automattic\/jetpack-newsletter\/src\/..\/build\/action-bar.css?ver=35dd33285eb46dc308dd";
+				link.rel = "stylesheet";
+				document.head.appendChild( link );
+
+				var script = document.createElement( "script" );
+				script.src = "\/wp-content\/mu-plugins\/jetpack-plugin\/moon\/jetpack_vendor\/automattic\/jetpack-newsletter\/src\/..\/build\/action-bar.js?ver=35dd33285eb46dc308dd";
+				document.body.appendChild( script );
+			} );
+</script>
+<script crossorigin='anonymous' type='text/javascript'  src='/wp-content/mu-plugins/likes/queuehandler.js?m=1792747087i'></script>
+<script id="wp-dom-ready-js" src="/wp-content/plugins/gutenberg-core/v24.2.0/build/scripts/dom-ready/index.min.js?m=1792056112i&#038;ver=3fe927cab37bf38d6a23"></script>
+<script data-wp-strategy="defer" defer id="jetpack-block-subscriptions-js" src="/wp-content/mu-plugins/jetpack-plugin/moon/_inc/blocks/subscriptions/view.js?m=1791318856i&#038;minify=false&#038;ver=16.4-a.6"></script>
+<script id="jetpack-comments-js-before">
+window.JetpackComments = {"version":"0.8.1-alpha","styleUrl":"/wp-content/mu-plugins/jetpack-mu-wpcom-plugin/moon/jetpack_vendor/automattic/jetpack-comments/build/comments.css?minify=false\u0026ver=fe38e420ec0b252008ed-1792510721","requireNameEmail":true,"mustLogIn":false,"site":{"name":"Asher\u0026#039;s Blog","iconUrl":""},"manageSubscriptionsUrl":"https://subscribe.wordpress.com/?site=asheradeniyi.com","tracks":{"platform":"simple"},"strings":{"reply":"Reply","commentLabel":"Comment","replyLabel":"Reply","placeholder":"Write a comment...","replyPlaceholder":"Write a reply...","name":"Name","email":"Email","emailHint":"Address never made public","emailHasAccount":"That email belongs to a WordPress.com account. Log in with WordPress.com to use it, or enter a different email.","website":"Website (optional)","intro":"Enter your name and email to comment.","continueAsGuest":"Continue as a guest","postWithoutSaving":"No, thanks. I just want to post a comment","save":"Save","saveDetails":"Save my name, email, and website in this browser for the next time I comment.","close":"Close","manageSubscriptions":"Manage subscription","mustLogIn":"You must be logged in to post a comment.","logIn":"Log in","logInWithWordPress":"Log in with WordPress.com","logOut":"Log out","change":"Change","editProfile":"Edit profile","addYourName":"Add your name","cancel":"Cancel","signInFailed":"We could not sign you in. Please try again.","tooLong":"This comment is too long to post. Shorten it to send it.","signInRateLimited":"Too many sign-in attempts. Please wait a moment and try again."},"assetsUrl":"https://s1.wp.com/wp-content/mu-plugins/jetpack-mu-wpcom-plugin/moon/jetpack_vendor/automattic/jetpack-comments/build/","loaderUrl":"https://s1.wp.com/wp-content/mu-plugins/jetpack-mu-wpcom-plugin/moon/jetpack_vendor/automattic/jetpack-comments/build/editor-loader.js?m=1793042026i&amp;minify=false\u0026ver=e97ae311fcf906801392","maxLength":65525,"blocks":true,"editorLocale":{"block title\u0004Paragraph":["Paragraph"],"block title\u0004List":["List"],"block title\u0004List Item":["List Item"],"block title\u0004Quote":["Quote"],"block title\u0004Code":["Code"],"block title\u0004Embed":["Embed"],"block title\u0004Image":["Image"]},"editor":{"blockTools":"Block tools","addBlock":"Add block","embedUrl":"https://public-api.wordpress.com/wpcom/v2/sites/126290534/comments/embed","images":true,"imageError":"This image could not be loaded. Check its URL and try again."},"isLoggedIn":false,"avatarUrl":"https://0.gravatar.com/avatar/?s=80\u0026d=identicon\u0026forcedefault=y\u0026r=G","commenter":{"author":"","email":"","url":""},"user":null,"identity":{"blogId":126290534,"canSignIn":true,"connect":{"url":"https://public-api.wordpress.com/connect/?comment_identity=1\u0026blog_id=126290534\u0026challenge=UhV6fAltSMPS8FwSZcw-_AAJSmL4AkXN3vYrVcwuU8c\u0026origin=https%3A%2F%2Fasheradeniyi.com\u0026expires=1793070239\u0026signature=c03740599014ad9526f2bd153e703e19c51ebf256ca58349a2298457999272b7","expires":1793070239,"challenge":"UhV6fAltSMPS8FwSZcw-_AAJSmL4AkXN3vYrVcwuU8c"},"connectUrl":"https://public-api.wordpress.com/wpcom/v2/sites/126290534/comments/identity/connect","emailUrl":"https://public-api.wordpress.com/wpcom/v2/sites/126290534/comments/identity/email","origin":"https://public-api.wordpress.com","codeField":"jetpack_comment_identity_code","passportField":"jetpack_comment_identity_passport","displayCookie":"jetpack_comment_identity_display","cookieHash":"653166773dc88127bd3afe0b6dfe5ea7","cookiePath":"/","cookieDomain":"","defaultAvatar":"https://0.gravatar.com/avatar/?s=80\u0026d=identicon\u0026forcedefault=y\u0026r=G","logoutUrl":"/wp-admin/admin-ajax.php","logoutAction":"jetpack_comments_identity_logout"}};(function(){function n(){Array.prototype.forEach.call(document.forms,function(f){var i;if(f.querySelector(".jetpack-comments")&&!f.querySelector('[name="jetpack_comments_form_nonce"]')){i=document.createElement("input");i.type="hidden";i.name="jetpack_comments_form_nonce";i.value="c06320fb24";f.appendChild(i);}});}n();document.addEventListener("DOMContentLoaded",n);})();window.addEventListener("load",function(){Array.prototype.forEach.call(document.querySelectorAll(".jetpack-comments"),function(e){if(!/\bis-(mounted|plain)\b/.test(e.className)){e.className+=" is-plain";}});});
+//# sourceURL=jetpack-comments-js-before
+</script>
+<script data-wp-strategy="defer" defer id="jetpack-comments-js" src="/wp-content/mu-plugins/jetpack-mu-wpcom-plugin/moon/jetpack_vendor/automattic/jetpack-comments/build/comments.js?m=1793042026i&#038;minify=false&#038;ver=fe38e420ec0b252008ed-1792510721"></script>
+<script id="subscribe-modal-js-js-extra">
+var Jetpack_Subscriptions = {"modalLoadTime":"60000","modalScrollThreshold":"50","modalInterval":"86400000"};
+//# sourceURL=subscribe-modal-js-js-extra
+</script>
+<script id="comment-like-js-extra">
+var comment_like_text = {"loading":"Loading...","swipeUrl":"https://s2.wp.com/wp-content/mu-plugins/comment-likes/js/lib/swipe.js?m=1382645497i&amp;ver=20131008"};
+//# sourceURL=comment-like-js-extra
+</script>
+<script id="sharing-js-js-extra">
+var sharing_js_options = {"lang":"en","counts":"1","is_stats_active":"1"};
+//# sourceURL=sharing-js-js-extra
+</script>
+<script crossorigin='anonymous' type='text/javascript'  src='/_static/??-eJyVUNsKwjAM/SG7TMRtPoifIl1bZ7beaFpkf28t20ARwZeQk8s5J4GHZ8LZqGwEk5jXaUBLwCckoyI7VDVc0YqtcAtlWFYj7SDv5p5OUhGMBMIZk3lYUF7PlUG7Dn0RGFX0XEwLBuPcK8ikMxWlnkRAH9HZDfWK5T7Xn/iHxupH4/RusBT+NFe+0CfUEujOg5JcyrmkaIfl2Is579uuPR3rrmnGJ+DggZE='></script>
+<script id="sharing-js-js-after">
+window.WPCOM_sharing_popups = window.WPCOM_sharing_popups || {};
+window.WPCOM_sharing_popups[ "twitter" ] = "menubar=1,resizable=1,width=600,height=350";
+window.WPCOM_sharing_popups = window.WPCOM_sharing_popups || {};
+window.WPCOM_sharing_popups[ "facebook" ] = "menubar=1,resizable=1,width=600,height=400";
+//# sourceURL=sharing-js-js-after
+</script>
+
+	<script type="text/javascript">
+		(function () {
+			var wpcom_reblog = {
+				source: 'toolbar',
+
+				toggle_reblog_box_flair: function (obj_id, post_id) {
+
+					// Go to site selector. This will redirect to their blog if they only have one.
+					const postEndpoint = `https://wordpress.com/post`;
+
+					// Ideally we would use the permalink here, but fortunately this will be replaced with the 
+					// post permalink in the editor.
+					const originalURL = `${ document.location.href }?page_id=${ post_id }`; 
+					
+					const url =
+						postEndpoint +
+						'?url=' +
+						encodeURIComponent( originalURL ) +
+						'&is_post_share=true' +
+						'&v=5';
+
+					const redirect = function () {
+						if (
+							! window.open( url, '_blank' )
+						) {
+							location.href = url;
+						}
+					};
+
+					if ( /Firefox/.test( navigator.userAgent ) ) {
+						setTimeout( redirect, 0 );
+					} else {
+						redirect();
+					}
+				},
+			};
+
+			window.wpcom_reblog = wpcom_reblog;
+		})();
+	</script>
+<script id="wp-emoji-settings" type="application/json">
+{"baseUrl":"https://s0.wp.com/wp-content/mu-plugins/wpcom-smileys/twemoji/2/72x72/","ext":".png","svgUrl":"https://s0.wp.com/wp-content/mu-plugins/wpcom-smileys/twemoji/2/svg/","svgExt":".svg","source":{"concatemoji":"/wp-includes/js/wp-emoji-release.min.js?m=1783090810i&ver=7.2-alpha-63973"}}
+</script>
+<script type="module">
+/*! This file is auto-generated */
+var e="script#wp-emoji-settings",t=document.querySelector(e);if(!(t instanceof HTMLScriptElement))throw new Error("Element missing: "+e);const r=JSON.parse(t.text),s=(window._wpemojiSettings=r,"wpEmojiSettingsSupports"),o=["flag","emoji"];function i(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(s,JSON.stringify(t))}catch(e){}}function c(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0);const r=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);return t.every((e,t)=>e===r[t])}function p(e,t){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var n=e.getImageData(16,16,1,1);for(let e=0;e<n.data.length;e++)if(0!==n.data[e])return!1;return!0}function u(e,t,n,r){switch(t){case"flag":return n(e,"\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!n(e,"\ud83c\udde8\ud83c\uddf6","\ud83c\udde8\u200b\ud83c\uddf6")&&!n(e,"\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!r(e,"\ud83e\udec8")}return!1}function f(e,t,n,r){let a;const s=(a="undefined"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):document.createElement("canvas")).getContext("2d",{willReadFrequently:!0}),o=(s.textBaseline="top",s.font="600 32px Arial",{});return e.forEach(e=>{o[e]=t(s,e,n,r)}),o}function a(e){var t=document.createElement("script");t.src=e,t.defer=!0,document.head.appendChild(t)}r.supports={everything:!0,everythingExceptFlag:!0},new Promise(t=>{let n=function(){try{var e=JSON.parse(sessionStorage.getItem(s));if("object"==typeof e&&"number"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&"object"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if("undefined"!=typeof Worker&&"undefined"!=typeof OffscreenCanvas&&"undefined"!=typeof URL&&URL.createObjectURL&&"undefined"!=typeof Blob)try{var e="postMessage("+f.toString()+"("+[JSON.stringify(o),u.toString(),c.toString(),p.toString()].join(",")+"));",r=new Blob([e],{type:"text/javascript"});const a=new Worker(URL.createObjectURL(r),{name:"wpTestEmojiSupports"});return void(a.onmessage=e=>{i(n=e.data),a.terminate(),t(n)})}catch(e){}i(n=f(o,u,c,p))}t(n)}).then(e=>{for(const n in e)r.supports[n]=e[n],r.supports.everything=r.supports.everything&&r.supports[n],"flag"!==n&&(r.supports.everythingExceptFlag=r.supports.everythingExceptFlag&&r.supports[n]);var t;r.supports.everythingExceptFlag=r.supports.everythingExceptFlag&&!r.supports.flag,r.supports.everything||((t=r.source||{}).concatemoji?a(t.concatemoji):t.wpemoji&&t.twemoji&&(a(t.twemoji),a(t.wpemoji)))});
+//# sourceURL=/wp-includes/js/wp-emoji-loader.min.js
+</script>
+	<iframe src='https://widgets.wp.com/likes/master.html?ver=20261027#ver=20261027' scrolling='no' id='likes-master' name='likes-master' style='display:none;'></iframe>
+	<div id='likes-other-gravatars' role="dialog" aria-hidden="true" tabindex="-1"><div class="likes-text"><span>%d</span></div><ul class="wpl-avatars sd-like-gravatars"></ul></div>
+	<script src="//stats.wp.com/w.js?71" defer></script> <script type="text/javascript">
+_tkq = window._tkq || [];
+_stq = window._stq || [];
+_tkq.push(['storeContext', {'blog_id':'126290534','blog_tz':'1','user_lang':'en','blog_lang':'en','user_id':'0'}]);
+		// Prevent sending pageview tracking from WP-Admin pages.
+		_stq.push(['view', {'blog':'126290534','v':'wpcom','tz':'1','user_id':'0','post':'1010','subd':'asheradeniyi'}]);
+		_stq.push(['extra', {'crypt':'UE5tW3cvZGRmfjBOfEEzTnUsWnk9Qi1+WnIzTm9HXzclcTlzRnJdYi5nWlBCYU8tX1RJcnouNiZNaDhbSzRhPW5kb2NRdzIvelR2NC8teWF+Zi13LE8wQzg1JmIlZEF2c354N0JLS3Q0ckJndzJiVEZ3SmVQbCtJNXJ1N196JTU3VVhKciVQJjVRSUVxbXNhLWF+c18tK1A2eVN5QS9xYndXX2k4Py5sNG44Z0dMUkM0cWFCckFUUDErT21OR3NsTSs='}]);
+_stq.push([ 'clickTrackerInit', '126290534', '1010' ]);
+</script>
+<noscript><img src="https://pixel.wp.com/b.gif?v=noscript" style="height:1px;width:1px;overflow:hidden;position:absolute;bottom:1px;" alt="" /></noscript>
+<meta id="bilmur" property="bilmur:data" content="" data-provider="wordpress.com" data-service="simple" data-site-tz="Africa/Lagos" data-custom-props="{&quot;logged_in&quot;:&quot;0&quot;,&quot;wptheme&quot;:&quot;pub\/sten&quot;,&quot;wptheme_is_block&quot;:&quot;1&quot;}"   >
+		<script defer src="/wp-content/js/bilmur.min.js?i=19&amp;m=202644"></script> 	</body>
+</html>
+

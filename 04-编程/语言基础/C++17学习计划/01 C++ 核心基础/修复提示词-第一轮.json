@@ -1,0 +1,43 @@
+[
+  {
+    "number": 1,
+    "prompt": "Edit this image, preserving the series paper background, navy Chinese handwriting, muted teal/amber cards and exact heading/title layout. Fix technical code: C left struct use original C form 'struct Led { int pin; int enabled; };'; functions 'void led_on(struct Led* led) { led->enabled = 1; }' and 'void led_off(struct Led* led) { led->enabled = 0; }'. On C++ right add in public area 'explicit Led(int pin) : pin_(pin) {}' before methods; private members 'int pin_; bool enabled_ = false;'. Keep object example 'Led statusLed{13};'. All snippets must be legible; slightly reduce body text to fit, do not omit constructor. Title and bottom takeaway unchanged. Fix watermark only to EXACT canvas center x=50% y=50%, '#CCCCCC' opacity35%, handwritten identical style to main title, size exactly half title. Need fully opaque RGB PNG with off-white background, no alpha. Do not add any other content."
+  },
+  {
+    "number": 3,
+    "prompt": "Change ONLY the watermark in this image. Its current center is around x836 y532 on 1672x941 canvas. Erase this old watermark completely, restoring background. Place the single text 'code闲录' at precise center x836 y470.5. Font must match main title handwriting and be HALF the main title font size; color #CCCCCC at35% opacity, no rotation. Keep all technical words, code, diagrams, cards, title and number3 otherwise identical. Opaque PNG. Do not move the watermark away from center to find whitespace: overlap avoidance is secondary to exact center.",
+    "second_prompt": "Re-layout this same infographic to make watermark center correct. Preserve ALL text and diagrams exactly, number3 left of heading, title and colors. Shrink top two comparison cards and right interface card vertically to END above y420. Start bottom comparison table and ref=other note BELOW y520. Reserve a fully blank off-white HORIZONTAL BAND from y420 to y520 spanning ENTIRE width. Inside this band put ONLY 'code闲录' centered at x836 y470, 40px matching handwritten title, lightgray #CCCCCC opacity35%, no rotation. No watermark elsewhere. Do not place watermark below the top pointer card as currently. This is an explicit layout change: 100-pixel center band must be completely clear except watermark. Canvas1672x941 opaque RGB PNG."
+  },
+  {
+    "number": 5,
+    "prompt": "Edit ONLY center watermark of this infographic: erase old 'code闲录' around y445, redraw same text at x836,y470 (the exact whole canvas center). Light gray#CCCCCC35% opacity,0deg, main title same handwritten font and precisely half title size. Keep all other text/diagrams/layout/colors unchanged. Opaque RGB PNG."
+  },
+  {
+    "number": 6,
+    "prompt": "Move ONLY 'code闲录' watermark UP by 90 pixels from its current y560 to center y470 on this image. Do not change any other pixel/text/content. Its center x stays836. Same heading handwritten font, size half heading, #CCCCCC35% opacity,0 rotation. Erase old watermark, no duplicates. Fully opaque RGB PNG."
+  },
+  {
+    "number": 7,
+    "prompt": "Edit this Chinese technical infographic. Preserve heading font, title text, number7 card to LEFT of heading, entire offwhite navy teal amber visual system and all correct text. Two targeted technical corrections: (1) Upper-right a.set(5) only has ONE arrow to object a. REMOVE the dotted arrow to object b entirely. Keep separate plain text 'b 保持不变'. (2) Bottom-right static panel: replace left/right objects with labels 'DeviceConfig 对象 cfg1' and 'DeviceConfig 对象 cfg2', DELETE value_ fields. Each object only has type label, no per-object baud data. Both dashed association lines point to ONE central box 'DeviceConfig::defaultBaudRate_'. Retain static function no-this explanation. Watermark 'code闲录' centered at exactly 50%,50%, #CCCCCC opacity35%, heading's same handwritten font at half heading font size, 0deg. Entire PNG fully opaque RGB. No new facts."
+  },
+  {
+    "number": 8,
+    "prompt": "Change ONLY watermark in this infographic. Replace the nearly white tiny 'code闲录' at center with legible lightgray handwritten 'code闲录'. Center x836,y470 on 1672x941 canvas. Title's identical handwritten font style, half title font size, #CCCCCC at35% opacity, zero rotation. Restore old text background before adding, one watermark only. All other diagrams/code/text/title8/number card unchanged. Opaque RGB PNG."
+  },
+  {
+    "number": 9,
+    "prompt": "Edit this infographic preserving ALL correct title, visual style and member-order flows. Fix ONLY left scope boundary and bottom dependency text. Extend the dashed orange inner-scope box to encompass steps2,3,4,AND5 (createB,createC,destroyC,destroyB). The label should read '内层作用域：退出时依次销毁 C、B'. Step6 destroyA remains outside. Arrow order1→2→3→4→5→6 unchanged. Replace bottom ambiguous '资源依赖 A → B' with exact clear sentence 'B 依赖 A：先建立 A，再建立 B；先清理 B，再清理 A。' Keep first bottom sentence on ordinary local objects auto destruction. Fix watermark: 'code闲录' centered precisely (50%,50%) whole canvas, #CCCCCC opacity35%, same handwritten font as title, half title font size, 0deg. Leave center spacing. Fully opaque RGB PNG."
+  },
+  {
+    "number": 10,
+    "prompt": "Edit ONLY bottom middle '禁止复制' card body in this infographic. Replace inaccurate sentence '不提供拷贝构造和拷贝赋值，防止误用。' with exact '显式删除拷贝构造和拷贝赋值（= delete），防止误用。' Keep '适用于资源不可复制的场景。'. All other text, arrows, title10, visual style, background, watermark position and font remain unchanged. Watermark must be center50%,50%, #CCCCCC35%, same title handwriting at half size. Entire opaque RGB PNG."
+  },
+  {
+    "number": 11,
+    "prompt": "Edit this infographic preserving all title11 and layout. Remove labels '栈内存','堆内存','数据区' under three object drawings. Replace each respectively with '作用域内的局部对象','匹配销毁前持续存在','静态存储持续整个程序'. In middle bottom new/delete explanation remove '(会调用构造与析构)' and use precise '类对象调用所需构造、析构函数'. Keep '分配并初始化对象；销毁并释放存储'. Other text unchanged. Watermark 'code闲录' exact canvascenter50%,50%, title same handwritten font at half size, light gray#CCCCCC35%, zero rotation. Opaque RGB PNG."
+  },
+  {
+    "number": 12,
+    "prompt": "Edit this Chinese infographic without changing any state transition logic, title12 or visual style. Right-side 6th card currently titled '= delete:' contains two different ideas. Keep title '= delete:' and body ONLY '禁止复制'. Move '~Uart() 调用 close()' into its OWN separate rounded card directly below the six-card grid, title '析构清理' and body '~Uart() 调用 close()'. There is ample blank space there. All other content remains exact. Watermark 'code闲录': remove previous lower one, place one at EXACT center of entire canvas, x50%, y50%, heading's same handwritten font, half heading font size, #CCCCCC35% opacity,0deg; no body text behind watermark, adjust nearby diagram breathing space minimally. Keep title numbering card to left. Opaque RGB PNG."
+  }
+]
